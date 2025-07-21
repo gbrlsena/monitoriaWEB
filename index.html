@@ -27,9 +27,7 @@
     }
     html, body { font-family: 'Poppins', sans-serif; }
     body { 
-        margin: 0; 
-        background: var(--background-light); 
-        color: var(--text-light);
+        margin: 0; background: var(--background-light); color: var(--text-light);
         transition: background 0.3s, color 0.3s;
     }
     html.dark body { background: var(--background-dark); color: var(--text-dark); }
@@ -47,57 +45,35 @@
     .icon-btn { background: none; border: none; font-size: 1.6rem; cursor: pointer; color: white; padding: 0; }
     main { padding: 2rem; }
     .placeholder-text { text-align: center; color: #888; grid-column: 1 / -1; font-size: 1.2rem; }
-    
-    /* Grid de Cards (Kanban) */
     .kanban-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; }
-    
-    /* --- Estilos do Novo Dashboard --- */
     .dashboard-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        grid-template-rows: auto;
-        gap: 2rem;
-        max-width: 1200px;
-        margin: 0 auto;
+        display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: auto;
+        gap: 2rem; max-width: 1200px; margin: 0 auto;
     }
     .progress-container {
-        grid-column: 1 / -1; /* Ocupa a largura total */
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        margin-bottom: 2rem;
+        grid-column: 1 / -1; display: flex; flex-direction: column;
+        align-items: center; margin-bottom: 2rem;
     }
     .progress-circle {
-        width: 200px;
-        height: 200px;
-        border-radius: 50%;
-        display: grid;
-        place-items: center;
+        width: 200px; height: 200px; border-radius: 50%;
+        display: grid; place-items: center;
         background: conic-gradient(var(--done-color) var(--progress, 0), var(--border-light) var(--progress, 0));
         transition: --progress 1s ease-out;
     }
-    html.dark .progress-circle {
-        background: conic-gradient(var(--done-color) var(--progress, 0), var(--border-dark) var(--progress, 0));
-    }
+    @property --progress { syntax: '<percentage>'; inherits: false; initial-value: 0%; }
+    html.dark .progress-circle { background: conic-gradient(var(--done-color) var(--progress, 0), var(--border-dark) var(--progress, 0)); }
     .progress-inner {
-        width: 170px;
-        height: 170px;
-        border-radius: 50%;
-        background: var(--background-light);
-        display: grid;
-        place-items: center;
-        text-align: center;
+        width: 170px; height: 170px; border-radius: 50%;
+        background: var(--background-light); display: grid;
+        place-items: center; text-align: center;
     }
     html.dark .progress-inner { background: var(--background-dark); }
     .progress-percentage { font-size: 3rem; font-weight: 700; color: var(--done-color); }
     .progress-label { font-size: 1rem; color: #6c757d; }
     html.dark .progress-label { color: #a0a0a0; }
-
     .dashboard-panel {
-        background: var(--card-light);
-        border-radius: 8px;
-        padding: 1.5rem;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        background: var(--card-light); border-radius: 8px;
+        padding: 1.5rem; box-shadow: 0 4px 6px rgba(0,0,0,0.05);
     }
     html.dark .dashboard-panel { background: var(--card-dark); box-shadow: none; }
     .dashboard-panel h3 { margin-top: 0; border-bottom: 2px solid var(--border-light); padding-bottom: 0.5rem; }
@@ -109,8 +85,6 @@
     .dashboard-panel .monitor-name { font-weight: 500; }
     .dashboard-panel .team-name { color: #555; }
     html.dark .dashboard-panel .team-name { color: #ccc; }
-
-    /* Estilos dos Cards (Kanban) */
     .card { 
         background: var(--card-light); border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); 
         display: flex; flex-direction: column; border-top: 4px solid var(--border-light);
@@ -133,12 +107,6 @@
     .btn-ativo { background-color: var(--active-color); color: white; }
     .btn-reabrir { background-color: var(--reopen-color); color: white; }
     .btn-pausar { background-color: var(--pause-color); color: white; }
-    
-    /* Estilos dos Modais (sem alterações) */
-    .modal-overlay { /* ... */ } .modal-content { /* ... */ } .modal-close { /* ... */ }
-    .setting-section { /* ... */ } #assignmentList { /* ... */ }
-    .history-filter { /* ... */ } #historyResults { /* ... */ } .history-item { /* ... */ }
-    .custom-alert { /* ... */ }
   </style>
 </head>
 <body>
@@ -153,7 +121,7 @@
   </header>
   
   <main id="boardContainer">
-    <!-- O conteúdo (Dashboard ou Kanban) será injetado aqui pelo JS -->
+    <!-- O conteúdo será injetado aqui pelo JS -->
   </main>
 
    <!-- Modal de Configurações -->
