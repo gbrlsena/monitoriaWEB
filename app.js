@@ -13,146 +13,231 @@ const db = firebase.firestore();
 // ---- Fim: Configuração do Firebase ----
 
 // --- Seletores do DOM ---
-// ... (todos os seletores anteriores)
-const monitorSelect = document.getElementById('monitorSelect');
-const board = document.getElementById('kanbanBoard');
-const settingsBtn = document.getElementById('settingsBtn');
-const settingsModal = document.getElementById('settingsModal');
-const modalCloseBtn = document.getElementById('modalCloseBtn');
-const toggleMode = document.getElementById('toggleMode');
-const newMonitorNameInput = document.getElementById('newMonitorName');
-const addMonitorBtn = document.getElementById('addMonitorBtn');
-const newTeamNameInput = document.getElementById('newTeamName');
-const addTeamBtn = document.getElementById('addTeamBtn');
-const distDateInput = document.getElementById('distDate');
-const distMonitorSelect = document.getElementById('distMonitorSelect');
-const distTeamSelect = document.getElementById('distTeamSelect');
-const addAssignmentBtn = document.getElementById('addAssignmentBtn');
-const assignmentList = document.getElementById('assignmentList');
-const saveAssignmentsBtn = document.getElementById('saveAssignmentsBtn');
-// NOVO: Seletores para o Alerta
-const customAlert = document.getElementById('customAlert');
-const customAlertMessage = document.getElementById('customAlertMessage');
+// Os seletores são movidos para dentro do onload para garantir que os elementos existam.
+let monitorSelect, board, settingsBtn, settingsModal, modalCloseBtn, toggleMode,
+    newMonitorNameInput, addMonitorBtn, newTeamNameInput, addTeamBtn,
+    distDateInput, distMonitorSelect, distTeamSelect, addAssignmentBtn,
+    assignmentList, saveAssignmentsBtn, customAlert, customAlertMessage;
 
 // --- Variáveis Globais ---
 let unsubscribeFromCards = null;
 let pendingAssignments = [];
-let alertTimer = null; // Para controlar o tempo de exibição do alerta
+let alertTimer = null;
 
 // ==========================================================
-// NOVO: Função para Alertas em Tela
+// A execução principal começa quando a janela inteira é carregada
 // ==========================================================
+window.onload = () => {
+    // --- Atribuição dos Seletores do DOM ---
+    // Agora temos certeza que todos os elementos do HTML já foram carregados
+    monitorSelect = document.getElementById('monitorSelect');
+    board = document.getElementById('kanbanBoard');
+    settingsBtn = document.getElementById('settingsBtn');
+    settingsModal = document.getElementById('settingsModal');
+    modalCloseBtn = document.getElementById('modalCloseBtn');
+    toggleMode = document.getElementById('toggleMode');
+    newMonitorNameInput = document.getElementById('newMonitorName');
+    addMonitorBtn = document.getElementById('addMonitorBtn');
+    newTeamNameInput = document.getElementById('newTeamName');
+    addTeamBtn = document.getElementById('addTeamBtn');
+    distDateInput = document.getElementById('distDate');
+    distMonitorSelect = document.getElementById('distMonitorSelect');
+    distTeamSelect = document.getElementById('distTeamSelect');
+    addAssignmentBtn = document.getElementById('addAssignmentBtn');
+    assignmentList = document.getElementById('assignmentList');
+    saveAssignmentsBtn = document.getElementById('saveAssignmentsBtn');
+    customAlert = document.getElementById('customAlert');
+    customAlertMessage = document.getElementById('customAlertMessage');
+
+    // --- Configuração dos Event Listeners ---
+    // A lógica dos botões é movida para cá
+    monitorSelect.onchange = handleMonitorChange;
+    settingsBtn.onclick = openSettingsModal;
+    modalCloseBtn.onclick = closeSettingsModal;
+    window.onclick = (event) => {
+        if (event.target == settingsModal) {
+            closeSettingsModal();
+        }
+    };
+    toggleMode.onclick = () => document.documentElement.classList.toggle('dark');
+    addMonitorBtn.onclick = createMonitor;
+    addTeamBtn.onclick = createTeam;
+    addAssignmentBtn.onclick = addAssignmentToList;
+    saveAssignmentsBtn.onclick = saveAssignments;
+
+    // --- Inicialização da Página ---
+    populateSelect(monitorSelect, 'monitors');
+    distDateInput.valueAsDate = new Date();
+};
+
+
+// ==========================================================
+// FUNÇÕES
+// (O resto do código é organizado em funções)
+// ==========================================================
+
 function showAlert(message, type = 'success') {
-    // Limpa qualquer alerta que já esteja na tela
-    if (alertTimer) {
-        clearTimeout(alertTimer);
-    }
-
+    if (alertTimer) clearTimeout(alertTimer);
     customAlertMessage.textContent = message;
-    
-    // Define a classe para cor (success ou error)
-    customAlert.className = 'custom-alert'; // Reseta as classes
-    customAlert.classList.add(type);
-
-    // Mostra o alerta
-    customAlert.classList.add('show');
-
-    // Esconde o alerta após 3 segundos
+    customAlert.className = 'custom-alert';
+    customAlert.classList.add(type, 'show');
     alertTimer = setTimeout(() => {
         customAlert.classList.remove('show');
     }, 3000);
 }
 
+async function populateSelect(selectElement, collectionName) {
+    selectElement.innerHTML = `<option value="">Selecione...</option>`;
+    const snapshot = await db.collection(collectionName).orderBy("name").get();
+    snapshot.docs.forEach(doc => {
+        const option = document.createElement('option');
+        option.value = doc.data().name;
+        option.textContent = doc.data().name;
+        selectElement.appendChild(option);
+    });
+}
 
-// --- Funções de Inicialização ---
-async function populateSelect(selectElement, collectionName) { /* ...código sem alteração... */ }
-window.onload = () => { /* ...código sem alteração... */ };
+function handleMonitorChange() {
+    if (unsubscribeFromCards) unsubscribeFromCards();
+    const monitor = monitorSelect.value;
+    if (!monitor) {
+        board.innerHTML = '<p>Por favor, selecione seu nome.</p>';
+        return;
+    }
+    unsubscribeFromCards = db.collection("cards").where("monitor", "==", monitor)
+        .onSnapshot(snapshot => {
+            const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            const hoje = new Date();
+            hoje.setHours(0, 0, 0, 0);
 
+            const cards = data.filter(c => {
+                if (!c.data || !c.data.toDate) return false;
+                const cardDate = c.data.toDate();
+                cardDate.setHours(0, 0, 0, 0);
+                return cardDate.getTime() === hoje.getTime() || (cardDate < hoje && c.status !== 'feito');
+            }).sort((a, b) => {
+                if (a.status === 'feito' && b.status !== 'feito') return 1;
+                if (a.status !== 'feito' && b.status === 'feito') return -1;
+                if (!a.data || !b.data) return 0;
+                return a.data.toDate() - b.data.toDate();
+            });
+            renderCards(cards);
+        }, error => {
+            console.error("Erro ao ouvir os cards: ", error);
+            showAlert('Erro ao carregar cards.', 'error');
+        });
+}
 
-// --- Lógica do Kanban ---
-monitorSelect.onchange = () => { /* ...código sem alteração... */ };
-function renderCards(cards, monitor) { /* ...código sem alteração... */ }
-function addCardButtonListeners(monitor) { /* ...código sem alteração... */ }
+function renderCards(cards) {
+    board.innerHTML = '';
+    if (cards.length === 0) {
+        board.innerHTML = '<p>Você não tem cards hoje.</p>';
+        return;
+    }
+    cards.forEach(card => {
+        const el = document.createElement('div');
+        el.className = `card ${card.status === 'feito' ? 'done' : ''} ${card.status === 'ativo' ? 'active' : ''}`;
+        el.innerHTML = `
+            <h3>${card.time}</h3>
+            <p><strong>Data:</strong> ${formatarDataBR(card.data)}</p>
+            <p><strong>Status:</strong> ${card.status}</p>
+            ${card.log ? `<p><strong>Log:</strong> ${card.log}</p>` : ''}
+            <div class="actions">
+                <button class="btn btn-concluir" data-id="${card.id}" ${card.status === 'feito' ? 'disabled' : ''}>✅ Concluir</button>
+                <button class="btn btn-ajuda" data-id="${card.id}">🆘 Pedir ajuda</button>
+                <button class="btn btn-ativo" data-id="${card.id}" ${card.status === 'feito' ? 'disabled' : ''}>🔵 Ativo</button>
+            </div>`;
+        board.appendChild(el);
+    });
+    addCardButtonListeners();
+}
 
+function addCardButtonListeners() {
+    document.querySelectorAll('.btn-concluir').forEach(btn => btn.addEventListener('click', () => marcarFeito(btn.dataset.id)));
+    document.querySelectorAll('.btn-ajuda').forEach(btn => btn.addEventListener('click', () => pedirAjuda(btn.dataset.id)));
+    document.querySelectorAll('.btn-ativo').forEach(btn => btn.addEventListener('click', () => marcarAtivo(btn.dataset.id)));
+}
 
-// --- Funções de Ação dos Cards (Atualizadas) ---
 async function atualizarCard(id, payload) {
     try {
         await db.collection("cards").doc(id).update(payload);
     } catch (error) {
         console.error("Erro ao atualizar o card:", error);
-        // ANTES: alert('Ocorreu um erro ao atualizar o card.');
-        showAlert('Erro ao atualizar o card.', 'error'); // DEPOIS
+        showAlert('Erro ao atualizar o card.', 'error');
     }
 }
+
 async function marcarFeito(id) { await atualizarCard(id, { status: "feito", log: `Concluído em ${new Date().toLocaleString('pt-BR')}` }); }
 async function pedirAjuda(id) { await atualizarCard(id, { status: "pendente", precisaAjuda: true, log: "Pedido de ajuda solicitado" }); }
 async function marcarAtivo(id) { await atualizarCard(id, { status: "ativo", precisaAjuda: false, log: "Marcado como ativo" }); }
 
+function openSettingsModal() {
+    settingsModal.style.display = 'flex';
+    populateSelect(distMonitorSelect, 'monitors');
+    populateSelect(distTeamSelect, 'teams');
+}
 
-// --- Lógica do Modal (Atualizada) ---
-settingsBtn.onclick = () => { /* ...código sem alteração... */ };
-modalCloseBtn.onclick = () => settingsModal.style.display = 'none';
-window.onclick = (event) => { /* ...código sem alteração... */ };
+function closeSettingsModal() {
+    settingsModal.style.display = 'none';
+}
 
-toggleMode.onclick = () => document.documentElement.classList.toggle('dark');
-
-addMonitorBtn.onclick = async () => {
+async function createMonitor() {
     const name = newMonitorNameInput.value.trim();
-    if (!name) {
-        // ANTES: return alert('Por favor, insira um nome para o monitor.');
-        return showAlert('Insira um nome para o monitor.', 'error'); // DEPOIS
-    }
+    if (!name) return showAlert('Insira um nome para o monitor.', 'error');
     try {
         await db.collection('monitors').add({ name: name });
-        // ANTES: alert(`Monitor "${name}" criado com sucesso!`);
-        showAlert(`Monitor "${name}" criado!`, 'success'); // DEPOIS
+        showAlert(`Monitor "${name}" criado!`, 'success');
         newMonitorNameInput.value = '';
         populateSelect(monitorSelect, 'monitors');
         populateSelect(distMonitorSelect, 'monitors');
     } catch (error) {
         console.error("Erro ao criar monitor: ", error);
-        // ANTES: alert('Erro ao criar monitor.');
-        showAlert('Erro ao criar monitor.', 'error'); // DEPOIS
+        showAlert('Erro ao criar monitor.', 'error');
     }
-};
+}
 
-addTeamBtn.onclick = async () => {
+async function createTeam() {
     const name = newTeamNameInput.value.trim();
-    if (!name) {
-        // ANTES: return alert('Por favor, insira um nome para o time.');
-        return showAlert('Insira um nome para o time.', 'error'); // DEPOIS
-    }
+    if (!name) return showAlert('Insira um nome para o time.', 'error');
     try {
         await db.collection('teams').add({ name: name });
-        // ANTES: alert(`Time "${name}" criado com sucesso!`);
-        showAlert(`Time "${name}" criado!`, 'success'); // DEPOIS
+        showAlert(`Time "${name}" criado!`, 'success');
         newTeamNameInput.value = '';
         populateSelect(distTeamSelect, 'teams');
     } catch (error) {
         console.error("Erro ao criar time: ", error);
-        // ANTES: alert('Erro ao criar time.');
-        showAlert('Erro ao criar time.', 'error'); // DEPOIS
+        showAlert('Erro ao criar time.', 'error');
     }
-};
+}
 
-// --- Lógica da Distribuição (Atualizada) ---
-addAssignmentBtn.onclick = () => {
+function addAssignmentToList() {
     const assignment = { monitor: distMonitorSelect.value, team: distTeamSelect.value, date: distDateInput.value };
     if (!assignment.monitor || !assignment.team || !assignment.date) {
-        // ANTES: return alert('Por favor, selecione data, monitor e time.');
-        return showAlert('Selecione data, monitor e time.', 'error'); // DEPOIS
+        return showAlert('Selecione data, monitor e time.', 'error');
     }
     pendingAssignments.push(assignment);
     renderPendingAssignments();
-};
+}
 
-function renderPendingAssignments() { /* ...código sem alteração... */ }
+function renderPendingAssignments() {
+    assignmentList.innerHTML = '';
+    pendingAssignments.forEach((item, index) => {
+        const li = document.createElement('li');
+        li.textContent = `${item.team} → ${item.monitor}`;
+        const removeBtn = document.createElement('button');
+        removeBtn.textContent = '❌';
+        removeBtn.onclick = () => {
+            pendingAssignments.splice(index, 1);
+            renderPendingAssignments();
+        };
+        li.appendChild(removeBtn);
+        assignmentList.appendChild(li);
+    });
+}
 
-saveAssignmentsBtn.onclick = async () => {
+async function saveAssignments() {
     if (pendingAssignments.length === 0) {
-        // ANTES: return alert('Nenhuma distribuição para salvar.');
-        return showAlert('Nenhuma distribuição para salvar.', 'error'); // DEPOIS
+        return showAlert('Nenhuma distribuição para salvar.', 'error');
     }
     const batch = db.batch();
     pendingAssignments.forEach(item => {
@@ -167,19 +252,21 @@ saveAssignmentsBtn.onclick = async () => {
             transferidoPara: ""
         });
     });
-
     try {
         await batch.commit();
-        // ANTES: alert('Distribuição salva com sucesso!');
-        showAlert('Distribuição salva com sucesso!', 'success'); // DEPOIS
+        showAlert('Distribuição salva com sucesso!', 'success');
         pendingAssignments = [];
         renderPendingAssignments();
     } catch (error) {
         console.error("Erro ao salvar distribuição: ", error);
-        // ANTES: alert('Ocorreu um erro ao salvar a distribuição.');
-        showAlert('Erro ao salvar a distribuição.', 'error'); // DEPOIS
+        showAlert('Erro ao salvar a distribuição.', 'error');
     }
-};
+}
 
-// --- Funções Utilitárias ---
-function formatarDataBR(dataStr) { /* ...código sem alteração... */ }
+function formatarDataBR(dataStr) {
+    const data = dataStr.toDate ? dataStr.toDate() : new Date(dataStr);
+    const dia = String(data.getDate()).padStart(2, '0');
+    const mes = String(data.getMonth() + 1).padStart(2, '0');
+    const ano = data.getFullYear();
+    return `${dia}/${mes}/${ano}`;
+}
