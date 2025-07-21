@@ -339,7 +339,7 @@ document.addEventListener('DOMContentLoaded', () => {
             case 'addMonitorBtn': createMonitor(); break;
             case 'addTeamBtn': createTeam(); break;
             case 'saveAssignmentsBtn': saveAssignments(); break;
-            case 'fetchHistoryBtn': /* função fetchHistory será chamada abaixo */ break;
+            case 'fetchHistoryBtn': fetchHistory(); break;
         }
     });
 
