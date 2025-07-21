@@ -16,6 +16,7 @@
         --pause-color: #fd7e14;
         --reopen-color: #6c757d;
         --help-color: #ffc107;
+        --copy-color: #5bc0de;
         --background-light: #f4f7f6;
         --background-dark: #121212;
         --card-light: #ffffff;
@@ -46,35 +47,32 @@
     main { padding: 2rem; }
     .placeholder-text { text-align: center; color: #888; grid-column: 1 / -1; font-size: 1.2rem; }
     .kanban-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; }
+    
+    /* --- Dashboard --- */
     .dashboard-grid {
-        display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: auto;
-        gap: 2rem; max-width: 1200px; margin: 0 auto;
+        display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 2rem; max-width: 1400px; margin: 0 auto;
     }
     .progress-container {
         grid-column: 1 / -1; display: flex; flex-direction: column;
         align-items: center; margin-bottom: 2rem;
     }
     .progress-circle {
-        width: 200px; height: 200px; border-radius: 50%;
-        display: grid; place-items: center;
+        width: 200px; height: 200px; border-radius: 50%; display: grid; place-items: center;
         background: conic-gradient(var(--done-color) var(--progress, 0), var(--border-light) var(--progress, 0));
         transition: --progress 1s ease-out;
     }
     @property --progress { syntax: '<percentage>'; inherits: false; initial-value: 0%; }
     html.dark .progress-circle { background: conic-gradient(var(--done-color) var(--progress, 0), var(--border-dark) var(--progress, 0)); }
     .progress-inner {
-        width: 170px; height: 170px; border-radius: 50%;
-        background: var(--background-light); display: grid;
-        place-items: center; text-align: center;
+        width: 170px; height: 170px; border-radius: 50%; background: var(--background-light);
+        display: grid; place-items: center; text-align: center;
     }
     html.dark .progress-inner { background: var(--background-dark); }
     .progress-percentage { font-size: 3rem; font-weight: 700; color: var(--done-color); }
     .progress-label { font-size: 1rem; color: #6c757d; }
     html.dark .progress-label { color: #a0a0a0; }
-    .dashboard-panel {
-        background: var(--card-light); border-radius: 8px;
-        padding: 1.5rem; box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-    }
+    .dashboard-panel { background: var(--card-light); border-radius: 8px; padding: 1.5rem; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
     html.dark .dashboard-panel { background: var(--card-dark); box-shadow: none; }
     .dashboard-panel h3 { margin-top: 0; border-bottom: 2px solid var(--border-light); padding-bottom: 0.5rem; }
     html.dark .dashboard-panel h3 { border-bottom-color: var(--border-dark); }
@@ -85,6 +83,8 @@
     .dashboard-panel .monitor-name { font-weight: 500; }
     .dashboard-panel .team-name { color: #555; }
     html.dark .dashboard-panel .team-name { color: #ccc; }
+
+    /* --- Cards --- */
     .card { 
         background: var(--card-light); border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); 
         display: flex; flex-direction: column; border-top: 4px solid var(--border-light);
@@ -93,222 +93,51 @@
     .card:hover { transform: translateY(-5px); box-shadow: 0 8px 12px rgba(0,0,0,0.08); }
     html.dark .card { background: var(--card-dark); border-top-color: var(--border-dark); box-shadow: none; }
     .card.active { border-top-color: var(--active-color); }
-    .card.done { border-top-color: var(--done-color); opacity: 0.7; }
-    .card-content { padding: 1rem; flex-grow: 1; }
+    .card.done { border-top-color: var(--done-color); opacity: 0.8; }
+    .card-content { padding: 1rem; flex-grow: 1; min-height: 80px; } /* Altura mínima para padronização */
     .card-content h3 { margin-top: 0; font-size: 1.2rem; }
     .card-content p { margin: 0.5rem 0; font-size: 0.9rem; color: #6c757d; }
     html.dark .card-content p { color: #a0a0a0; }
     .actions { padding: 1rem; border-top: 1px solid var(--border-light); display: flex; gap: 0.5rem; flex-wrap: wrap; }
     html.dark .actions { border-top-color: var(--border-dark); }
-    .btn { width: 100%; border: none; border-radius: 6px; font-weight: 500; cursor: pointer; padding: 0.6rem; flex-basis: 100px; flex-grow: 1; }
+    .btn { width: auto; flex-grow: 1; border: none; border-radius: 6px; font-weight: 500; cursor: pointer; padding: 0.6rem; }
     .btn:disabled { cursor: wait; opacity: 0.7; }
     .btn-concluir { background-color: var(--done-color); color: white; }
     .btn-ajuda { background-color: var(--help-color); color: black; }
     .btn-ativo { background-color: var(--active-color); color: white; }
     .btn-reabrir { background-color: var(--reopen-color); color: white; }
+    .btn-copiar { background-color: var(--copy-color); color: white; }
     .btn-pausar { background-color: var(--pause-color); color: white; }
 
-    /* ======================================= */
-/*    ESTILOS DOS MODAIS E OUTROS ELEMENTOS (COMPLETO)   */
-/* ======================================= */
+    /* --- Distribuição por Matriz --- */
+    .distribution-matrix { overflow-x: auto; margin-top: 1rem; }
+    .distribution-matrix table { width: 100%; border-collapse: collapse; }
+    .distribution-matrix th, .distribution-matrix td { padding: 0.75rem; border: 1px solid var(--border-light); text-align: center; }
+    html.dark .distribution-matrix th, html.dark .distribution-matrix td { border-color: var(--border-dark); }
+    .distribution-matrix th { background: #f8f9fa; }
+    html.dark .distribution-matrix th { background: #333; }
+    .distribution-matrix td:first-child { text-align: left; font-weight: 500; }
+    .distribution-matrix input[type="checkbox"] { width: 20px; height: 20px; cursor: pointer; }
+    #distribution-summary { margin-top: 1rem; font-weight: 500; }
 
-/* --- Modal --- */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background-color: rgba(0, 0, 0, 0.6);
-  z-index: 1000;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.3s ease;
-}
-
-.modal-overlay.visible {
-  opacity: 1;
-  pointer-events: auto;
-}
-
-.modal-content {
-  background: var(--card-light);
-  padding: 2rem;
-  border-radius: 8px;
-  max-width: 600px;
-  width: 90%;
-  position: relative;
-  max-height: 85vh;
-  overflow-y: auto;
-  box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-  transform: scale(0.9);
-  transition: transform 0.3s ease;
-}
-html.dark .modal-content { 
-    background: var(--card-dark);
-}
-
-.modal-overlay.visible .modal-content {
-    transform: scale(1);
-}
-
-.modal-close {
-  position: absolute;
-  top: 10px;
-  right: 20px;
-  font-size: 2rem;
-  font-weight: bold;
-  cursor: pointer;
-  color: #888;
-  border: none;
-  background: none;
-}
-.modal-close:hover { 
-    color: #333; 
-}
-html.dark .modal-close:hover { 
-    color: white; 
-}
-
-/* --- Seções do Modal de Configurações --- */
-.setting-section {
-  margin-top: 1.5rem;
-  border-top: 1px solid var(--border-light);
-  padding-top: 1.5rem;
-}
-html.dark .setting-section { 
-    border-top-color: var(--border-dark); 
-}
-.setting-section:first-of-type { 
-    margin-top: 0; 
-    padding-top: 0; 
-    border-top: none; 
-}
-.setting-section h3, .setting-section h4 { 
-    margin-top: 0; 
-}
-.setting-section input, .setting-section select, .setting-section button {
-  width: 100%;
-  box-sizing: border-box;
-  padding: 0.7rem;
-  margin-top: 0.5rem;
-  border-radius: 6px;
-  border: 1px solid #ccc;
-}
-html.dark .setting-section input, html.dark .setting-section select { 
-    background: #333; 
-    color: white; 
-    border-color: #555; 
-}
-
-#assignmentList { 
-    list-style: none; 
-    padding: 0; 
-    margin-top: 1rem;
-}
-#assignmentList li { 
-    background: #eee; 
-    padding: 0.5rem; 
-    margin-top: 0.25rem; 
-    border-radius: 4px; 
-    display: flex; 
-    justify-content: space-between; 
-    align-items: center; 
-}
-html.dark #assignmentList li { 
-    background: #444; 
-}
-#assignmentList button { 
-    background: none; 
-    border: none; 
-    cursor: pointer; 
-    padding: 0 0.5rem; 
-}
-
-/* --- Filtro e Resultados do Histórico --- */
-.history-filter { 
-    display: flex; 
-    gap: 1rem; 
-    align-items: center; 
-    flex-wrap: wrap; 
-    margin-bottom: 1.5rem; 
-}
-.history-filter label {
-    margin-left: 0.5rem;
-}
-.history-filter input { 
-    padding: 0.5rem; 
-}
-.history-filter button { 
-    padding: 0.6rem 1rem; 
-}
-
-#historyResults { 
-    margin-top: 1rem; 
-}
-.history-item { 
-    margin-bottom: 1.5rem; 
-    padding-bottom: 1rem; 
-    border-bottom: 1px solid var(--border-light); 
-}
-html.dark .history-item { 
-    border-bottom-color: var(--border-dark); 
-}
-.history-item:last-child {
-    border-bottom: none;
-}
-.history-item-header { 
-    font-weight: bold; 
-}
-.history-log-list { 
-    list-style: none; 
-    padding-left: 1rem; 
-    margin-top: 0.5rem; 
-}
-.history-log-list li { 
-    padding: 0.25rem 0; 
-    font-size: 0.9rem; 
-}
-.history-log-list .log-time { 
-    color: #888; 
-    font-size: 0.8rem; 
-    margin-right: 0.5rem; 
-}
-
-/* --- Alerta Customizado --- */
-.custom-alert {
-  position: fixed;
-  bottom: 20px;
-  left: 50%;
-  padding: 12px 20px;
-  border-radius: 8px;
-  color: white;
-  font-weight: bold;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-  z-index: 2000;
-  opacity: 0;
-  transition: opacity 0.3s ease, transform 0.4s ease;
-  transform: translateX(-50%) translateY(30px);
-  pointer-events: none;
-}
-.custom-alert.show {
-  opacity: 1;
-  transform: translateX(-50%) translateY(0);
-  pointer-events: auto;
-}
-.custom-alert.success {
-  background-color: var(--done-color);
-}
-.custom-alert.error {
-  background-color: #dc3545;
-}
-.custom-alert p {
-  margin: 0;
-  padding: 0;
-}
+    /* --- Modals e Outros --- */
+    .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: rgba(0, 0, 0, 0.6); z-index: 1000; display: flex; justify-content: center; align-items: center; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
+    .modal-overlay.visible { opacity: 1; pointer-events: auto; }
+    .modal-content { background: var(--card-light); padding: 2rem; border-radius: 8px; max-width: 800px; width: 90%; position: relative; max-height: 85vh; overflow-y: auto; box-shadow: 0 5px 15px rgba(0,0,0,0.3); transform: scale(0.9); transition: transform 0.3s ease; }
+    html.dark .modal-content { background: var(--card-dark); }
+    .modal-overlay.visible .modal-content { transform: scale(1); }
+    .modal-close { position: absolute; top: 10px; right: 20px; font-size: 2rem; font-weight: bold; cursor: pointer; color: #888; border: none; background: none; }
+    .setting-section { margin-top: 1.5rem; border-top: 1px solid var(--border-light); padding-top: 1.5rem; }
+    html.dark .setting-section { border-top-color: var(--border-dark); }
+    .setting-section:first-of-type { margin-top: 0; padding-top: 0; border-top: none; }
+    .setting-section input, .setting-section select, .setting-section button { width: 100%; box-sizing: border-box; padding: 0.7rem; margin-top: 0.5rem; border-radius: 6px; border: 1px solid #ccc; }
+    html.dark .setting-section input, html.dark .setting-section select { background: #333; color: white; border-color: #555; }
+    .history-filter { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; margin-bottom: 1.5rem; }
+    #historyResults, .history-item { margin-top: 1rem; }
+    .custom-alert { position: fixed; bottom: 20px; left: 50%; padding: 12px 20px; border-radius: 8px; color: white; font-weight: bold; box-shadow: 0 4px 10px rgba(0,0,0,0.2); z-index: 2000; opacity: 0; transition: opacity 0.3s ease, transform 0.4s ease; transform: translateX(-50%) translateY(30px); pointer-events: none; }
+    .custom-alert.show { opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: auto; }
+    .custom-alert.success { background-color: var(--done-color); }
+    .custom-alert.error { background-color: #dc3545; }
   </style>
 </head>
 <body>
@@ -326,22 +155,32 @@ html.dark .history-item {
     <!-- O conteúdo será injetado aqui pelo JS -->
   </main>
 
-   <!-- Modal de Configurações -->
+  <!-- Modal de Configurações -->
   <div id="settingsModal" class="modal-overlay">
     <div class="modal-content">
-      <span class="modal-close" id="settingsModalCloseBtn">×</span>
+      <button class="modal-close" id="settingsModalCloseBtn">×</button>
       <h2>Configurações</h2>
       <div class="setting-section"><button id="toggleMode">Alternar Modo Claro/Escuro</button></div>
       <div class="setting-section"><h3>Adicionar Monitor</h3><input type="text" id="newMonitorName" placeholder="Nome do monitor"><button id="addMonitorBtn">Criar Monitor</button></div>
       <div class="setting-section"><h3>Adicionar Time</h3><input type="text" id="newTeamName" placeholder="Nome do time"><button id="addTeamBtn">Criar Time</button></div>
-      <div class="setting-section"><h3>Distribuir Cards</h3><input type="date" id="distDate"><select id="distMonitorSelect"></select><select id="distTeamSelect"></select><button id="addAssignmentBtn">Adicionar</button><ul id="assignmentList"></ul><button id="saveAssignmentsBtn" class="btn-concluir">Salvar</button></div>
+      <div class="setting-section">
+        <h3>Distribuir Cards</h3>
+        <p>Selecione a data e marque as atribuições na matriz abaixo.</p>
+        <input type="date" id="distDate">
+        <div id="distributionMatrixContainer" class="distribution-matrix">
+            <!-- A Matriz de Distribuição será gerada aqui pelo JS -->
+        </div>
+        <div id="distribution-summary"></div>
+        <button id="saveAssignmentsBtn" class="btn-concluir">Salvar Distribuição</button>
+      </div>
     </div>
   </div>
 
   <!-- Modal de Histórico -->
   <div id="historyModal" class="modal-overlay">
     <div class="modal-content">
-        <span class="modal-close" id="historyModalCloseBtn">×</span><h2>Histórico</h2>
+        <button class="modal-close" id="historyModalCloseBtn">×</button>
+        <h2>Histórico</h2>
         <div class="history-filter"><label for="historyDateStart">De:</label><input type="date" id="historyDateStart"><label for="historyDateEnd">Até:</label><input type="date" id="historyDateEnd"><button id="fetchHistoryBtn">Buscar</button></div>
         <div id="historyResults"><p class="placeholder-text">Selecione um período.</p></div>
     </div>
