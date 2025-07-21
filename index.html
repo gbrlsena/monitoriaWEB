@@ -2,315 +2,152 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <title>Monitoria</title>
+  <title>Monitoria - Kanban</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;700&display=swap" rel="stylesheet">
   
-  <!-- Início do CSS Integrado -->
   <style>
-    /* Estilos Gerais e Modo Escuro */
+    :root {
+        --primary-color: #49CBA8;
+        --background-light: #f4f7f6;
+        --background-dark: #121212;
+        --card-light: #ffffff;
+        --card-dark: #1e1e1e;
+        --text-light: #212529;
+        --text-dark: #e9e9e9;
+        --border-light: #dee2e6;
+        --border-dark: #444;
+    }
+    html, body { font-family: 'Poppins', sans-serif; }
     body { 
-        font-family: 'Poppins', sans-serif; 
         margin: 0; 
-        background: #f4f4f4; 
-        color: #333;
+        background: var(--background-light); 
+        color: var(--text-light);
         transition: background 0.3s, color 0.3s;
     }
-
-    .dark body { 
-        background: #121212; 
-        color: #eee; 
-    }
-
-    /* Header */
+    html.dark body { background: var(--background-dark); color: var(--text-dark); }
     header { 
-        padding: 1rem; 
-        background: #49CBA8; 
-        color: white; 
-        display: flex; 
-        justify-content: space-between; 
-        align-items: center; 
+        padding: 1rem 2rem; background: var(--primary-color); color: white; 
+        display: flex; justify-content: space-between; align-items: center; 
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
-
-    header select { 
-        font-size: 1rem; 
-        padding: 0.5rem; 
-        border-radius: 4px;
-        border: none;
-    }
-
-    .icon-btn { 
-        background: none; 
-        border: none; 
-        font-size: 1.5rem; 
-        cursor: pointer; 
-        color: white; 
-        margin-left: 0.5rem;
-        vertical-align: middle;
-    }
-
-    /* Kanban Board e Cards */
-    main { 
-        padding: 1rem; 
-        display: grid; 
-        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); 
-        gap: 1rem; 
-    }
-
+    header h1 { margin: 0; font-size: 1.5rem; }
+    .header-actions { display: flex; align-items: center; gap: 1rem; }
+    header select { font-size: 1rem; padding: 0.5rem; border-radius: 6px; border: none; }
+    .icon-btn { background: none; border: none; font-size: 1.6rem; cursor: pointer; color: white; padding: 0; }
+    main { padding: 2rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; }
+    .placeholder-text { text-align: center; color: #888; grid-column: 1 / -1; }
     .card { 
-        background: white; 
-        padding: 1rem; 
-        border-radius: 8px; 
-        box-shadow: 0 2px 5px rgba(0,0,0,0.1); 
-        display: flex;
-        flex-direction: column;
+        background: var(--card-light); border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); 
+        display: flex; flex-direction: column; border-top: 4px solid var(--border-light);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
-    .dark .card { 
-        background: #222; 
-        box-shadow: 0 2px 5px rgba(255,255,255,0.1); 
-    }
-
-    .card h3 {
-        margin-top: 0;
-    }
-
-    .card.active { 
-        border: 2px solid #3b82f6; 
-        background-color: #eef6ff; 
-    }
-    .dark .card.active { 
-        background-color: #333; 
-    }
-
-    .card.done { 
-        opacity: 0.6; 
-    }
-
-    /* Botões de Ação dos Cards */
-    .actions { 
-        margin-top: auto; /* Empurra os botões para baixo */
-        padding-top: 1rem;
-        display: flex; 
-        gap: 0.5rem; 
-        flex-wrap: wrap; 
-    }
-
-    .btn { 
-        padding: 0.5rem; 
-        flex-grow: 1; /* Faz os botões ocuparem o espaço disponível */
-        border: none; 
-        border-radius: 4px; 
-        font-weight: bold; 
-        cursor: pointer; 
-    }
-
-    .btn-concluir { 
-        background-color: #28a745; 
-        color: white; 
-    }
-    .btn-concluir:disabled { 
-        background-color: #6c757d; 
-        cursor: not-allowed; 
-    }
-
-    .btn-ajuda { 
-        background-color: #ffc107; 
-        color: black; 
-    }
-
-    /* Modal de Configurações */
+    .card:hover { transform: translateY(-5px); box-shadow: 0 8px 12px rgba(0,0,0,0.08); }
+    html.dark .card { background: var(--card-dark); border-top-color: var(--border-dark); box-shadow: none; }
+    .card.active { border-top-color: #3b82f6; }
+    .card.done { border-top-color: #28a745; opacity: 0.7; }
+    .card-content { padding: 1rem; flex-grow: 1; }
+    .card-content h3 { margin-top: 0; font-size: 1.2rem; }
+    .card-content p { margin: 0.5rem 0; font-size: 0.9rem; color: #6c757d; }
+    html.dark .card-content p { color: #a0a0a0; }
+    .actions { padding: 1rem; border-top: 1px solid var(--border-light); display: flex; gap: 0.5rem; }
+    html.dark .actions { border-top-color: var(--border-dark); }
+    .btn { width: 100%; border: none; border-radius: 6px; font-weight: 500; cursor: pointer; padding: 0.6rem; }
+    .btn-concluir { background-color: #28a745; color: white; }
+    .btn-concluir:disabled { background-color: #6c757d; cursor: not-allowed; }
+    .btn-ajuda { background-color: #ffc107; color: black; }
+    .btn-ativo { background-color: #3b82f6; color: white; }
+    .btn-reabrir { background-color: #6c757d; color: white; }
     .modal-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background-color: rgba(0, 0, 0, 0.6);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      z-index: 1000;
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background-color: rgba(0, 0, 0, 0.6); display: flex;
+      justify-content: center; align-items: center; z-index: 1000;
     }
-
     .modal-content {
-      background: white;
-      padding: 2rem;
-      border-radius: 8px;
-      max-width: 500px;
-      width: 90%;
-      position: relative;
-      max-height: 80vh;
-      overflow-y: auto;
+      background: var(--card-light); padding: 2rem; border-radius: 8px;
+      max-width: 600px; width: 90%; position: relative;
+      max-height: 85vh; overflow-y: auto;
     }
-    .dark .modal-content { 
-        background: #2a2a2a; 
-    }
-
+    html.dark .modal-content { background: var(--card-dark); }
     .modal-close {
-      position: absolute;
-      top: 10px;
-      right: 15px;
-      font-size: 1.8rem;
-      font-weight: bold;
-      cursor: pointer;
-      color: #888;
+      position: absolute; top: 10px; right: 20px; font-size: 2rem;
+      font-weight: bold; cursor: pointer; color: #888;
     }
-    .dark .modal-close {
-        color: #aaa;
-    }
-    .modal-close:hover {
-        color: #333;
-    }
-    .dark .modal-close:hover {
-        color: #fff;
-    }
-
-
+    .modal-close:hover { color: #333; }
+    html.dark .modal-close:hover { color: white; }
     .setting-section {
-      margin-top: 1.5rem;
-      border-top: 1px solid #ddd;
-      padding-top: 1.5rem;
+      margin-top: 1.5rem; border-top: 1px solid var(--border-light); padding-top: 1.5rem;
     }
-    .dark .setting-section { 
-        border-top-color: #555; 
+    html.dark .setting-section { border-top-color: var(--border-dark); }
+    .setting-section:first-of-type { margin-top: 0; padding-top: 0; border-top: none; }
+    .setting-section input, .setting-section select, .setting-section button {
+      width: 100%; box-sizing: border-box; padding: 0.7rem; margin-top: 0.5rem;
+      border-radius: 6px; border: 1px solid #ccc;
     }
-    .setting-section:first-of-type {
-        margin-top: 0;
-        padding-top: 0;
-        border-top: none;
-    }
-    .setting-section h3, .setting-section h4 { 
-        margin-top: 0; 
-    }
-
-    .setting-section input[type="text"],
-    .setting-section input[type="date"],
-    .setting-section select, 
-    .setting-section button {
-      width: 100%;
-      box-sizing: border-box;
-      padding: 0.5rem;
-      margin-top: 0.5rem;
-      border-radius: 4px;
-      border: 1px solid #ccc;
-    }
-    .setting-section button {
-        border: none;
-        background-color: #3b82f6;
-        color: white;
-        font-weight: bold;
-        cursor: pointer;
-    }
-
-    #assignmentList {
-        list-style: none;
-        padding: 0;
-    }
-    #assignmentList li {
-        background: #eee;
-        padding: 0.5rem;
-        margin-top: 0.25rem;
-        border-radius: 4px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-    .dark #assignmentList li { 
-        background: #444; 
-    }
-    #assignmentList button {
-        background: none;
-        border: none;
-        cursor: pointer;
-        padding: 0 0.5rem;
-    }
-
-    /* Alertas em Tela ("Toasts") */
+    html.dark .setting-section input, html.dark .setting-section select { background: #333; color: white; border-color: #555; }
+    #assignmentList { list-style: none; padding: 0; }
+    #assignmentList li { background: #eee; padding: 0.5rem; margin-top: 0.25rem; border-radius: 4px; display: flex; justify-content: space-between; align-items: center; }
+    html.dark #assignmentList li { background: #444; }
+    #assignmentList button { background: none; border: none; cursor: pointer; padding: 0 0.5rem; }
+    .history-filter { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; margin-bottom: 1.5rem; }
+    .history-filter input { padding: 0.5rem; }
+    .history-filter button { padding: 0.6rem 1rem; }
+    #historyResults { margin-top: 1rem; }
+    .history-item { margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border-light); }
+    html.dark .history-item { border-bottom-color: var(--border-dark); }
+    .history-item-header { font-weight: bold; }
+    .history-log-list { list-style: none; padding-left: 1rem; margin-top: 0.5rem; }
+    .history-log-list li { padding: 0.25rem 0; font-size: 0.9rem; }
+    .history-log-list .log-time { color: #888; font-size: 0.8rem; margin-right: 0.5rem; }
     .custom-alert {
-      position: fixed;
-      bottom: 20px;
-      left: 50%;
-      padding: 12px 20px;
-      border-radius: 8px;
-      color: white;
-      font-weight: bold;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-      z-index: 2000;
-      opacity: 0;
-      transition: opacity 0.3s ease, transform 0.4s ease;
-      transform: translateX(-50%) translateY(30px); /* Começa um pouco abaixo */
-      pointer-events: none; /* Não pode ser clicado quando invisível */
+      position: fixed; bottom: 20px; left: 50%; padding: 12px 20px;
+      border-radius: 8px; color: white; font-weight: bold;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.2); z-index: 2000;
+      opacity: 0; transition: opacity 0.3s ease, transform 0.4s ease;
+      transform: translateX(-50%) translateY(30px); pointer-events: none;
     }
-
-    .custom-alert.show {
-      opacity: 1;
-      transform: translateX(-50%) translateY(0); /* Sobe para a posição final */
-      pointer-events: auto;
-    }
-
-    .custom-alert.success {
-      background-color: #28a745;
-    }
-
-    .custom-alert.error {
-      background-color: #dc3545;
-    }
-
-    .custom-alert p {
-      margin: 0;
-      padding: 0;
-    }
+    .custom-alert.show { opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: auto; }
+    .custom-alert.success { background-color: #28a745; }
+    .custom-alert.error { background-color: #dc3545; }
+    .custom-alert p { margin: 0; padding: 0; }
   </style>
-  <!-- Fim do CSS Integrado -->
 </head>
 <body>
   <header>
-    <h1>Monitoria</h1>
-    <div>
-      <select id="monitorSelect">
-        <option value="">Selecione seu nome</option>
-        <!-- As opções serão preenchidas dinamicamente pelo JavaScript -->
-      </select>
-      <button id="settingsBtn" class="icon-btn">⚙️</button>
+    <div class="header-title"><h1>Monitoria</h1></div>
+    <div class="header-actions">
+      <select id="monitorSelect"><option value="">Selecione seu nome</option></select>
+      <button id="historyBtn" class="icon-btn" title="Histórico">📜</button>
+      <button id="settingsBtn" class="icon-btn" title="Configurações">⚙️</button>
     </div>
   </header>
   
   <main id="kanbanBoard">
-    <p>Selecione seu nome para carregar os cards.</p>
+    <p class="placeholder-text">Selecione seu nome para carregar os cards.</p>
   </main>
 
-  <!-- Modal de Configurações (invisível por padrão) -->
   <div id="settingsModal" class="modal-overlay" style="display: none;">
     <div class="modal-content">
-      <span class="modal-close" id="modalCloseBtn">×</span>
+      <span class="modal-close" id="settingsModalCloseBtn">×</span>
       <h2>Configurações</h2>
-      
-      <!-- Seção: Modo Escuro -->
       <div class="setting-section">
         <h3>Aparência</h3>
         <button id="toggleMode">Alternar Modo Claro/Escuro</button>
       </div>
-
-      <!-- Seção: Adicionar Monitor -->
       <div class="setting-section">
         <h3>Adicionar Novo Monitor</h3>
-        <input type="text" id="newMonitorName" placeholder="Nome do monitor">
-        <button id="addMonitorBtn">Criar Monitor</button>
+        <input type="text" id="newMonitorName" placeholder="Nome do monitor"><button id="addMonitorBtn">Criar Monitor</button>
       </div>
-
-      <!-- Seção: Adicionar Time -->
       <div class="setting-section">
         <h3>Adicionar Novo Time</h3>
-        <input type="text" id="newTeamName" placeholder="Nome do time">
-        <button id="addTeamBtn">Criar Time</button>
+        <input type="text" id="newTeamName" placeholder="Nome do time"><button id="addTeamBtn">Criar Time</button>
       </div>
-      
-      <!-- Seção: Distribuição -->
       <div class="setting-section">
         <h3>Distribuir Cards</h3>
         <p>Selecione o dia e atribua os times aos monitores.</p>
-        <input type="date" id="distDate">
-        <select id="distMonitorSelect"></select>
-        <select id="distTeamSelect"></select>
+        <input type="date" id="distDate"><select id="distMonitorSelect"></select><select id="distTeamSelect"></select>
         <button id="addAssignmentBtn">Adicionar na Lista</button>
         <h4>Distribuição para o dia selecionado:</h4>
         <ul id="assignmentList"></ul>
@@ -319,15 +156,23 @@
     </div>
   </div>
 
-  <!-- Elemento para Alertas em Tela -->
-  <div id="customAlert" class="custom-alert">
-    <p id="customAlertMessage"></p>
+  <div id="historyModal" class="modal-overlay" style="display: none;">
+    <div class="modal-content">
+        <span class="modal-close" id="historyModalCloseBtn">×</span>
+        <h2>Histórico de Atividades</h2>
+        <div class="history-filter">
+            <label for="historyDateStart">De:</label><input type="date" id="historyDateStart">
+            <label for="historyDateEnd">Até:</label><input type="date" id="historyDateEnd">
+            <button id="fetchHistoryBtn">Buscar</button>
+        </div>
+        <div id="historyResults"><p class="placeholder-text">Selecione um período e clique em buscar.</p></div>
+    </div>
   </div>
 
-  <!-- Scripts do Firebase e da Aplicação -->
+  <div id="customAlert" class="custom-alert"><p id="customAlertMessage"></p></div>
+
   <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-firestore-compat.js"></script>
-  <!-- Lembre-se que o código JS deve estar em um arquivo 'app.js' separado -->
   <script src="app.js"></script>
 </body>
 </html>
