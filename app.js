@@ -104,13 +104,10 @@ document.addEventListener('DOMContentLoaded', () => {
         unsubscribeFromData = db.collection("cards").where("monitor", "==", monitor).where("data", ">=", startOfDay).where("data", "<=", endOfDay)
             .onSnapshot(snapshot => {
                 let cards = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                
-                // Lógica de ordenação: ativo > pendente > feito
                 cards.sort((a, b) => {
                     const statusOrder = { 'ativo': 1, 'pendente': 2, 'feito': 3 };
                     return (statusOrder[a.status] || 99) - (statusOrder[b.status] || 99);
                 });
-
                 renderCards(cards);
             }, error => {
                 console.error("Erro ao carregar cards do Kanban:", error);
@@ -134,10 +131,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             let actionsHTML = '';
             if (isDone) {
-                actionsHTML = `
-                    <button class="btn btn-reabrir" data-id="${card.id}">↩️ Reabrir</button>
-                    <button class="btn btn-copiar" data-id="${card.id}" data-team="${card.time}">📋 Copiar</button>
-                `;
+                actionsHTML = `<button class="btn btn-reabrir" data-id="${card.id}">↩️ Reabrir</button><button class="btn btn-copiar" data-id="${card.id}" data-team="${card.time}">📋 Copiar</button>`;
             } else {
                 actionsHTML = `<button class="btn btn-concluir" data-id="${card.id}">✅ Concluir</button><button class="btn btn-ajuda" data-id="${card.id}">🆘 Pedir Ajuda</button>`;
                 if (isActive) {
@@ -187,70 +181,56 @@ document.addEventListener('DOMContentLoaded', () => {
     function pausarCard(id) { addLogEntry(id, { status: "pendente" }, "Atividade pausada"); }
     function copyText(teamName) {
         const textToCopy = `Monitoria do Time ${teamName} atualizada ✅`;
-        navigator.clipboard.writeText(textToCopy).then(() => {
-            showAlert('Texto copiado com sucesso!', 'success');
-        }, () => {
-            showAlert('Falha ao copiar o texto.', 'error');
-        });
+        navigator.clipboard.writeText(textToCopy).then(() => showAlert('Texto copiado!', 'success'), () => showAlert('Falha ao copiar.', 'error'));
     }
 
     async function createMonitor() {
-        const name = document.getElementById('newMonitorName').value.trim();
-        if (!name) return showAlert('Insira um nome para o monitor.', 'error');
+        const newMonitorNameInput = document.getElementById('newMonitorName');
+        const name = newMonitorNameInput.value.trim();
+        if (!name) return showAlert('Insira um nome.', 'error');
         try {
             await db.collection('monitors').add({ name: name });
             showAlert(`Monitor "${name}" criado!`, 'success');
-            document.getElementById('newMonitorName').value = '';
+            newMonitorNameInput.value = '';
             populateSelect(monitorSelect, 'monitors', '-- Visão Geral --');
         } catch (error) { showAlert('Erro ao criar monitor.', 'error'); }
     }
 
     async function createTeam() {
-        const name = document.getElementById('newTeamName').value.trim();
-        if (!name) return showAlert('Insira um nome para o time.', 'error');
+        const newTeamNameInput = document.getElementById('newTeamName');
+        const name = newTeamNameInput.value.trim();
+        if (!name) return showAlert('Insira um nome.', 'error');
         try {
             await db.collection('teams').add({ name: name });
             showAlert(`Time "${name}" criado!`, 'success');
-            document.getElementById('newTeamName').value = '';
+            newTeamNameInput.value = '';
         } catch (error) { showAlert('Erro ao criar time.', 'error'); }
     }
-    
+
     async function renderDistributionMatrix() {
         const container = document.getElementById('distributionMatrixContainer');
-        const summaryContainer = document.getElementById('distribution-summary');
         container.innerHTML = '<p>Carregando...</p>';
-
         try {
             const monitorsSnapshot = await db.collection('monitors').orderBy('name').get();
             const teamsSnapshot = await db.collection('teams').orderBy('name').get();
             const monitors = monitorsSnapshot.docs.map(doc => doc.data().name);
             const teams = teamsSnapshot.docs.map(doc => doc.data().name);
-
             if (monitors.length === 0 || teams.length === 0) {
                 container.innerHTML = '<p>Crie monitores e times primeiro.</p>';
                 return;
             }
-
             let tableHTML = '<table><thead><tr><th>Time</th>';
             monitors.forEach(monitor => tableHTML += `<th>${monitor}</th>`);
             tableHTML += '</tr></thead><tbody>';
-
             teams.forEach(team => {
                 tableHTML += `<tr><td>${team}</td>`;
-                monitors.forEach(monitor => {
-                    tableHTML += `<td><input type="checkbox" data-team="${team}" data-monitor="${monitor}"></td>`;
-                });
+                monitors.forEach(monitor => { tableHTML += `<td><input type="checkbox" data-team="${team}" data-monitor="${monitor}"></td>`; });
                 tableHTML += '</tr>';
             });
             tableHTML += '</tbody></table>';
             container.innerHTML = tableHTML;
-
-            // Adiciona listener para atualizar o sumário
-            container.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
-                checkbox.addEventListener('change', () => updateDistributionSummary(monitors));
-            });
+            container.querySelectorAll('input[type="checkbox"]').forEach(checkbox => checkbox.addEventListener('change', () => updateDistributionSummary(monitors)));
             updateDistributionSummary(monitors);
-
         } catch (error) {
             console.error("Erro ao criar matriz:", error);
             container.innerHTML = '<p>Erro ao carregar dados.</p>';
@@ -259,45 +239,84 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function updateDistributionSummary(monitors) {
         const summaryContainer = document.getElementById('distribution-summary');
-        let summary = [];
-        monitors.forEach(monitor => {
-            const count = document.querySelectorAll(`input[data-monitor="${monitor}"]:checked`).length;
-            if (count > 0) {
-                summary.push(`<strong>${monitor}:</strong> ${count}`);
-            }
-        });
-        summaryContainer.innerHTML = summary.join(' | ');
+        const summary = monitors.map(monitor => {
+            const count = document.querySelectorAll(`#distributionMatrixContainer input[data-monitor="${monitor}"]:checked`).length;
+            return count > 0 ? `<strong>${monitor}:</strong> ${count}` : null;
+        }).filter(Boolean).join(' | ');
+        summaryContainer.innerHTML = summary;
     }
 
     async function saveAssignments() {
-        const distDate = document.getElementById('distDate');
-        const date = distDate.value;
-        if (!date) return showAlert('Por favor, selecione uma data.', 'error');
-
+        const distDate = document.getElementById('distDate').value;
+        if (!distDate) return showAlert('Selecione uma data.', 'error');
         const checkedBoxes = document.querySelectorAll('#distributionMatrixContainer input:checked');
         if (checkedBoxes.length === 0) return showAlert('Nenhuma atribuição selecionada.', 'error');
-
         const batch = db.batch();
         checkedBoxes.forEach(box => {
             const newCardRef = db.collection('cards').doc();
             batch.set(newCardRef, {
-                monitor: box.dataset.monitor,
-                time: box.dataset.team,
-                data: firebase.firestore.Timestamp.fromDate(new Date(date + 'T12:00:00')),
-                status: "pendente",
-                precisaAjuda: false,
+                monitor: box.dataset.monitor, time: box.dataset.team,
+                data: firebase.firestore.Timestamp.fromDate(new Date(distDate + 'T12:00:00')),
+                status: "pendente", precisaAjuda: false,
                 historico: [{ timestamp: new Date(), mensagem: "Card criado" }]
             });
         });
-
         try {
             await batch.commit();
-            showAlert('Distribuição salva com sucesso!', 'success');
+            showAlert('Distribuição salva!', 'success');
             document.getElementById('settingsModal').classList.remove('visible');
         } catch (error) {
-            console.error("Erro ao salvar distribuição:", error);
+            console.error("Erro ao salvar:", error);
             showAlert('Erro ao salvar a distribuição.', 'error');
         }
+    }
+
+    async function fetchHistory() {
+        const historyDateStart = document.getElementById('historyDateStart');
+        const historyDateEnd = document.getElementById('historyDateEnd');
+        const historyResults = document.getElementById('historyResults');
+        const startDateString = historyDateStart.value;
+        const endDateString = historyDateEnd.value;
+        if (!startDateString || !endDateString) return showAlert('Selecione as datas.', 'error');
+        const startDate = new Date(startDateString + 'T00:00:00');
+        const endDate = new Date(endDateString + 'T23:59:59');
+        historyResults.innerHTML = '<p class="placeholder-text">Buscando...</p>';
+        try {
+            const snapshot = await db.collection('cards').where('data', '>=', startDate).where('data', '<=', endDate).orderBy('data', 'desc').get();
+            if (snapshot.empty) {
+                historyResults.innerHTML = '<p class="placeholder-text">Nenhuma atividade encontrada.</p>';
+                return;
+            }
+            historyResults.innerHTML = '';
+            snapshot.docs.forEach(doc => {
+                const card = doc.data();
+                const cardEl = document.createElement('div'); cardEl.className = 'history-item';
+                let logsHTML = '<ul class="history-log-list">';
+                if (card.historico && card.historico.length > 0) {
+                    card.historico.sort((a, b) => a.timestamp.toDate() - b.timestamp.toDate());
+                    card.historico.forEach(log => { logsHTML += `<li><span class="log-time">${formatarDataHoraBR(log.timestamp)}:</span> ${log.mensagem}</li>`; });
+                } else { logsHTML += '<li>Nenhum log detalhado.</li>'; }
+                logsHTML += '</ul>';
+                cardEl.innerHTML = `<div class="history-item-header"><span>${card.time} (${card.monitor}) - </span><span>${formatarDataBR(card.data)}</span></div>${logsHTML}`;
+                historyResults.appendChild(cardEl);
+            });
+        } catch (error) {
+            console.error("Erro ao buscar histórico:", error);
+            showAlert('Erro ao carregar o histórico.', 'error');
+            historyResults.innerHTML = '<p class="placeholder-text">Ocorreu um erro ao buscar.</p>';
+        }
+    }
+
+    function formatarDataBR(dataStr) {
+        if (!dataStr) return 'Data inválida';
+        const data = dataStr.toDate ? dataStr.toDate() : new Date(dataStr);
+        return data.toLocaleDateString('pt-BR');
+    }
+
+    function formatarDataHoraBR(dataStr) {
+        if (!dataStr) return '';
+        const data = dataStr.toDate ? dataStr.toDate() : new Date(dataStr);
+        return data.toLocaleString('pt-BR');
     }
 
     function updateView() {
@@ -323,18 +342,19 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!target) return;
         switch (target.id) {
             case 'settingsBtn':
-                document.getElementById('settingsModal').classList.add('visible');
+                settingsModal.classList.add('visible');
                 renderDistributionMatrix();
                 break;
             case 'historyBtn':
-                document.getElementById('historyModal').classList.add('visible');
+                historyModal.classList.add('visible');
+                const hoje = new Date();
+                const umaSemanaAtras = new Date();
+                umaSemanaAtras.setDate(hoje.getDate() - 7);
+                document.getElementById('historyDateStart').valueAsDate = umaSemanaAtras;
+                document.getElementById('historyDateEnd').valueAsDate = hoje;
                 break;
-            case 'settingsModalCloseBtn':
-                document.getElementById('settingsModal').classList.remove('visible');
-                break;
-            case 'historyModalCloseBtn':
-                document.getElementById('historyModal').classList.remove('visible');
-                break;
+            case 'settingsModalCloseBtn': settingsModal.classList.remove('visible'); break;
+            case 'historyModalCloseBtn': historyModal.classList.remove('visible'); break;
             case 'toggleMode': document.documentElement.classList.toggle('dark'); break;
             case 'addMonitorBtn': createMonitor(); break;
             case 'addTeamBtn': createTeam(); break;
@@ -343,7 +363,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Listener para fechar modais
     document.querySelectorAll('.modal-overlay').forEach(modal => {
         modal.addEventListener('click', (e) => { if (e.target === modal) modal.classList.remove('visible'); });
     });
