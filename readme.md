@@ -55,4 +55,3 @@ Construída com **HTML**, **CSS** e **JavaScript**, a aplicação é totalmente 
 - **JavaScript (ES6+)**: Lógica de funcionamento, manipulação de DOM e interatividade
 - **Google Firebase**:
   - **Firestore**: Banco de dados NoSQL com sincronização em tempo real
-  - **Hosting** *(opcional)*: Para publicação da aplicação
