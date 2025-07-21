@@ -142,47 +142,74 @@ document.addEventListener('DOMContentLoaded', () => {
         historyDateEnd.valueAsDate = hoje;
     }
 
-    async function fetchHistory() {
-        const startDate = historyDateStart.valueAsDate;
-        const endDate = historyDateEnd.valueAsDate;
-        if (!startDate || !endDate) return showAlert('Por favor, selecione as datas de início e fim.', 'error');
-        endDate.setHours(23, 59, 59, 999);
-        historyResults.innerHTML = '<p class="placeholder-text">Buscando...</p>';
-        try {
-            const snapshot = await db.collection('cards')
-                .where('data', '>=', startDate).where('data', '<=', endDate)
-                .orderBy('data', 'desc').get();
-            if (snapshot.empty) {
-                historyResults.innerHTML = '<p class="placeholder-text">Nenhuma atividade encontrada para este período.</p>';
-                return;
-            }
-            historyResults.innerHTML = '';
-            snapshot.docs.forEach(doc => {
-                const card = doc.data();
-                const cardEl = document.createElement('div');
-                cardEl.className = 'history-item';
-                let logsHTML = '<ul class="history-log-list">';
-                if (card.historico && card.historico.length > 0) {
-                    card.historico.forEach(log => {
-                        logsHTML += `<li><span class="log-time">${formatarDataHoraBR(log.timestamp)}:</span> ${log.mensagem}</li>`;
-                    });
-                } else { logsHTML += '<li>Nenhum log detalhado.</li>'; }
-                logsHTML += '</ul>';
-                cardEl.innerHTML = `
-                    <div class="history-item-header">
-                        <span>${card.time} (${card.monitor}) - </span>
-                        <span>${formatarDataBR(card.data)}</span>
-                    </div>
-                    ${logsHTML}
-                `;
-                historyResults.appendChild(cardEl);
-            });
-        } catch (error) {
-            console.error("Erro ao buscar histórico:", error);
-            showAlert('Não foi possível carregar o histórico.', 'error');
-            historyResults.innerHTML = '<p class="placeholder-text">Ocorreu um erro ao buscar.</p>';
-        }
+    // ==========================================================
+// FUNÇÕES DO HISTÓRICO (COM A FUNÇÃO CORRIGIDA)
+// ==========================================================
+
+async function fetchHistory() {
+    // Pega o valor como string 'YYYY-MM-DD' para evitar problemas de timezone com valueAsDate
+    const startDateString = historyDateStart.value;
+    const endDateString = historyDateEnd.value;
+
+    if (!startDateString || !endDateString) {
+        return showAlert('Por favor, selecione as datas de início e fim.', 'error');
     }
+
+    // CRIAÇÃO ROBUSTA DAS DATAS:
+    // Cria a data de início no primeiro segundo do dia (local)
+    const startDate = new Date(startDateString + 'T00:00:00');
+    // Cria a data de fim no último segundo do dia (local)
+    const endDate = new Date(endDateString + 'T23:59:59');
+
+    historyResults.innerHTML = '<p class="placeholder-text">Buscando...</p>';
+
+    try {
+        // A consulta continua a mesma, mas agora as variáveis startDate e endDate são precisas
+        const snapshot = await db.collection('cards')
+            .where('data', '>=', startDate)
+            .where('data', '<=', endDate)
+            .orderBy('data', 'desc')
+            .get();
+
+        if (snapshot.empty) {
+            historyResults.innerHTML = '<p class="placeholder-text">Nenhuma atividade encontrada para este período.</p>';
+            return;
+        }
+
+        historyResults.innerHTML = ''; // Limpa a busca
+        snapshot.docs.forEach(doc => {
+            const card = doc.data();
+            const cardEl = document.createElement('div');
+            cardEl.className = 'history-item';
+
+            let logsHTML = '<ul class="history-log-list">';
+            if (card.historico && card.historico.length > 0) {
+                // Ordena o histórico pela data para garantir a ordem cronológica
+                card.historico.sort((a, b) => a.timestamp.toDate() - b.timestamp.toDate());
+                card.historico.forEach(log => {
+                    logsHTML += `<li><span class="log-time">${formatarDataHoraBR(log.timestamp)}:</span> ${log.mensagem}</li>`;
+                });
+            } else {
+                logsHTML += '<li>Nenhum log detalhado.</li>';
+            }
+            logsHTML += '</ul>';
+
+            cardEl.innerHTML = `
+                <div class="history-item-header">
+                    <span>${card.time} (${card.monitor}) - </span>
+                    <span>${formatarDataBR(card.data)}</span>
+                </div>
+                ${logsHTML}
+            `;
+            historyResults.appendChild(cardEl);
+        });
+
+    } catch (error) {
+        console.error("Erro ao buscar histórico:", error);
+        showAlert('Não foi possível carregar o histórico.', 'error');
+        historyResults.innerHTML = '<p class="placeholder-text">Ocorreu um erro ao buscar.</p>';
+    }
+}
 
     // --- Funções de Configuração (Modal) ---
     function openSettingsModal() {
