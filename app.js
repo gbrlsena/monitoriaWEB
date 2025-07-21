@@ -17,59 +17,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const kanbanDateSelect = document.getElementById('kanbanDateSelect');
     const monitorSelect = document.getElementById('monitorSelect');
     const boardContainer = document.getElementById('boardContainer');
-    const settingsBtn = document.getElementById('settingsBtn');
     const settingsModal = document.getElementById('settingsModal');
-    const settingsModalCloseBtn = document.getElementById('settingsModalCloseBtn');
-    const toggleMode = document.getElementById('toggleMode');
-    const newMonitorNameInput = document.getElementById('newMonitorName');
-    const addMonitorBtn = document.getElementById('addMonitorBtn');
-    const newTeamNameInput = document.getElementById('newTeamName');
-    const addTeamBtn = document.getElementById('addTeamBtn');
-    const distDateInput = document.getElementById('distDate');
-    const distMonitorSelect = document.getElementById('distMonitorSelect');
-    const distTeamSelect = document.getElementById('distTeamSelect');
-    const addAssignmentBtn = document.getElementById('addAssignmentBtn');
-    const assignmentList = document.getElementById('assignmentList');
-    const saveAssignmentsBtn = document.getElementById('saveAssignmentsBtn');
-    const customAlert = document.getElementById('customAlert');
-    const customAlertMessage = document.getElementById('customAlertMessage');
-    const historyBtn = document.getElementById('historyBtn');
     const historyModal = document.getElementById('historyModal');
-    const historyModalCloseBtn = document.getElementById('historyModalCloseBtn');
-    const historyDateStart = document.getElementById('historyDateStart');
-    const historyDateEnd = document.getElementById('historyDateEnd');
-    const fetchHistoryBtn = document.getElementById('fetchHistoryBtn');
-    const historyResults = document.getElementById('historyResults');
     
     // --- Variáveis Globais ---
     let unsubscribeFromData = null;
-    let pendingAssignments = [];
     let alertTimer = null;
 
     // ==========================================================
     // 1. DEFINIÇÃO DE TODAS AS FUNÇÕES
     // ==========================================================
-    
-    function openSettingsModal() {
-        settingsModal.classList.add('visible');
-        distDateInput.valueAsDate = new Date();
-        populateSelect(distMonitorSelect, 'monitors', 'Selecione...');
-        populateSelect(distTeamSelect, 'teams', 'Selecione...');
-    }
-
-    function openHistoryModal() {
-        historyModal.classList.add('visible');
-        const hoje = new Date();
-        const umaSemanaAtras = new Date();
-        umaSemanaAtras.setDate(hoje.getDate() - 7);
-        historyDateStart.valueAsDate = umaSemanaAtras;
-        historyDateEnd.valueAsDate = hoje;
-    }
-
-    function closeSettingsModal() { settingsModal.classList.remove('visible'); }
-    function closeHistoryModal() { historyModal.classList.remove('visible'); }
 
     function showAlert(message, type = 'success') {
+        const customAlert = document.getElementById('customAlert');
+        const customAlertMessage = document.getElementById('customAlertMessage');
         if (alertTimer) clearTimeout(alertTimer);
         customAlertMessage.textContent = message;
         customAlert.className = 'custom-alert';
@@ -105,17 +66,23 @@ document.addEventListener('DOMContentLoaded', () => {
                 const totalCards = allCards.length;
                 const completedCards = allCards.filter(c => c.status === 'feito');
                 const activeCards = allCards.filter(c => c.status === 'ativo');
+                const pendingCards = allCards.filter(c => c.status === 'pendente');
                 const percentage = totalCards > 0 ? Math.round((completedCards.length / totalCards) * 100) : 0;
+                
                 const dashboardHTML = `
-                    <div class="dashboard-grid">
-                        <div class="progress-container">
-                            <div class="progress-circle" style="--progress: ${percentage}%">
-                                <div class="progress-inner"><div><div class="progress-percentage">${percentage}%</div><div class="progress-label">Concluído</div></div></div>
-                            </div>
+                    <div class="progress-container">
+                        <div class="progress-circle" style="--progress: ${percentage}%">
+                            <div class="progress-inner"><div><div class="progress-percentage">${percentage}%</div><div class="progress-label">Concluído</div></div></div>
                         </div>
+                    </div>
+                    <div class="dashboard-grid">
                         <div class="dashboard-panel">
                             <h3>Ativos no Momento</h3>
                             <ul>${ activeCards.length > 0 ? activeCards.map(c => `<li><span class="monitor-name">${c.monitor}</span> em <span class="team-name">${c.time}</span></li>`).join('') : '<li>Ninguém ativo no momento.</li>' }</ul>
+                        </div>
+                        <div class="dashboard-panel">
+                            <h3>Pendentes</h3>
+                            <ul>${ pendingCards.length > 0 ? pendingCards.map(c => `<li><span class="team-name">${c.time}</span> (com <span class="monitor-name">${c.monitor}</span>)</li>`).join('') : '<li>Nenhum card pendente.</li>' }</ul>
                         </div>
                         <div class="dashboard-panel">
                             <h3>Concluídos Hoje</h3>
@@ -136,7 +103,14 @@ document.addEventListener('DOMContentLoaded', () => {
         boardContainer.className = 'kanban-grid';
         unsubscribeFromData = db.collection("cards").where("monitor", "==", monitor).where("data", ">=", startOfDay).where("data", "<=", endOfDay)
             .onSnapshot(snapshot => {
-                const cards = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                let cards = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                
+                // Lógica de ordenação: ativo > pendente > feito
+                cards.sort((a, b) => {
+                    const statusOrder = { 'ativo': 1, 'pendente': 2, 'feito': 3 };
+                    return (statusOrder[a.status] || 99) - (statusOrder[b.status] || 99);
+                });
+
                 renderCards(cards);
             }, error => {
                 console.error("Erro ao carregar cards do Kanban:", error);
@@ -157,9 +131,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const isActive = card.status === 'ativo';
             if (isDone) el.classList.add('done');
             if (isActive) el.classList.add('active');
+            
             let actionsHTML = '';
             if (isDone) {
-                actionsHTML = `<button class="btn btn-reabrir" data-id="${card.id}">↩️ Reabrir</button>`;
+                actionsHTML = `
+                    <button class="btn btn-reabrir" data-id="${card.id}">↩️ Reabrir</button>
+                    <button class="btn btn-copiar" data-id="${card.id}" data-team="${card.time}">📋 Copiar</button>
+                `;
             } else {
                 actionsHTML = `<button class="btn btn-concluir" data-id="${card.id}">✅ Concluir</button><button class="btn btn-ajuda" data-id="${card.id}">🆘 Pedir Ajuda</button>`;
                 if (isActive) {
@@ -180,6 +158,7 @@ document.addEventListener('DOMContentLoaded', () => {
         boardContainer.querySelectorAll('.btn-ativo').forEach(btn => btn.addEventListener('click', () => marcarAtivo(btn.dataset.id)));
         boardContainer.querySelectorAll('.btn-reabrir').forEach(btn => btn.addEventListener('click', () => reabrirCard(btn.dataset.id)));
         boardContainer.querySelectorAll('.btn-pausar').forEach(btn => btn.addEventListener('click', () => pausarCard(btn.dataset.id)));
+        boardContainer.querySelectorAll('.btn-copiar').forEach(btn => btn.addEventListener('click', () => copyText(btn.dataset.team)));
     }
 
     function toggleCardButtons(cardId, disabled) {
@@ -194,9 +173,7 @@ document.addEventListener('DOMContentLoaded', () => {
         toggleCardButtons(id, true);
         const logEntry = { timestamp: new Date(), mensagem: logMessage };
         const finalPayload = { ...payload, historico: firebase.firestore.FieldValue.arrayUnion(logEntry) };
-        try {
-            await db.collection("cards").doc(id).update(finalPayload);
-        } catch (error) {
+        try { await db.collection("cards").doc(id).update(finalPayload); } catch (error) {
             console.error("Erro ao atualizar o card:", error);
             showAlert('Erro ao atualizar o card.', 'error');
             toggleCardButtons(id, false);
@@ -208,118 +185,119 @@ document.addEventListener('DOMContentLoaded', () => {
     function marcarAtivo(id) { addLogEntry(id, { status: "ativo", precisaAjuda: false }, "Marcado como ativo"); }
     function reabrirCard(id) { addLogEntry(id, { status: "pendente" }, "Card reaberto"); }
     function pausarCard(id) { addLogEntry(id, { status: "pendente" }, "Atividade pausada"); }
-
-    async function fetchHistory() {
-        const startDateString = historyDateStart.value;
-        const endDateString = historyDateEnd.value;
-        if (!startDateString || !endDateString) return showAlert('Por favor, selecione as datas de início e fim.', 'error');
-        const startDate = new Date(startDateString + 'T00:00:00');
-        const endDate = new Date(endDateString + 'T23:59:59');
-        historyResults.innerHTML = '<p class="placeholder-text">Buscando...</p>';
-        try {
-            const snapshot = await db.collection('cards').where('data', '>=', startDate).where('data', '<=', endDate).orderBy('data', 'desc').get();
-            if (snapshot.empty) {
-                historyResults.innerHTML = '<p class="placeholder-text">Nenhuma atividade encontrada para este período.</p>';
-                return;
-            }
-            historyResults.innerHTML = '';
-            snapshot.docs.forEach(doc => {
-                const card = doc.data();
-                const cardEl = document.createElement('div');
-                cardEl.className = 'history-item';
-                let logsHTML = '<ul class="history-log-list">';
-                if (card.historico && card.historico.length > 0) {
-                    card.historico.sort((a, b) => a.timestamp.toDate() - b.timestamp.toDate());
-                    card.historico.forEach(log => {
-                        logsHTML += `<li><span class="log-time">${formatarDataHoraBR(log.timestamp)}:</span> ${log.mensagem}</li>`;
-                    });
-                } else { logsHTML += '<li>Nenhum log detalhado.</li>'; }
-                logsHTML += '</ul>';
-                cardEl.innerHTML = `<div class="history-item-header"><span>${card.time} (${card.monitor}) - </span><span>${formatarDataBR(card.data)}</span></div>${logsHTML}`;
-                historyResults.appendChild(cardEl);
-            });
-        } catch (error) {
-            console.error("Erro ao buscar histórico:", error);
-            showAlert('Não foi possível carregar o histórico.', 'error');
-            historyResults.innerHTML = '<p class="placeholder-text">Ocorreu um erro ao buscar.</p>';
-        }
+    function copyText(teamName) {
+        const textToCopy = `Monitoria do Time ${teamName} atualizada ✅`;
+        navigator.clipboard.writeText(textToCopy).then(() => {
+            showAlert('Texto copiado com sucesso!', 'success');
+        }, () => {
+            showAlert('Falha ao copiar o texto.', 'error');
+        });
     }
 
     async function createMonitor() {
-        const name = newMonitorNameInput.value.trim();
+        const name = document.getElementById('newMonitorName').value.trim();
         if (!name) return showAlert('Insira um nome para o monitor.', 'error');
         try {
             await db.collection('monitors').add({ name: name });
             showAlert(`Monitor "${name}" criado!`, 'success');
-            newMonitorNameInput.value = '';
+            document.getElementById('newMonitorName').value = '';
             populateSelect(monitorSelect, 'monitors', '-- Visão Geral --');
-            populateSelect(distMonitorSelect, 'monitors', 'Selecione...');
         } catch (error) { showAlert('Erro ao criar monitor.', 'error'); }
     }
 
     async function createTeam() {
-        const name = newTeamNameInput.value.trim();
+        const name = document.getElementById('newTeamName').value.trim();
         if (!name) return showAlert('Insira um nome para o time.', 'error');
         try {
             await db.collection('teams').add({ name: name });
             showAlert(`Time "${name}" criado!`, 'success');
-            newTeamNameInput.value = '';
-            populateSelect(distTeamSelect, 'teams', 'Selecione...');
+            document.getElementById('newTeamName').value = '';
         } catch (error) { showAlert('Erro ao criar time.', 'error'); }
     }
+    
+    async function renderDistributionMatrix() {
+        const container = document.getElementById('distributionMatrixContainer');
+        const summaryContainer = document.getElementById('distribution-summary');
+        container.innerHTML = '<p>Carregando...</p>';
 
-    function addAssignmentToList() {
-        const assignment = { monitor: distMonitorSelect.value, team: distTeamSelect.value, date: distDateInput.value };
-        if (!assignment.monitor || !assignment.team || !assignment.date) return showAlert('Selecione data, monitor e time.', 'error');
-        pendingAssignments.push(assignment);
-        renderPendingAssignments();
+        try {
+            const monitorsSnapshot = await db.collection('monitors').orderBy('name').get();
+            const teamsSnapshot = await db.collection('teams').orderBy('name').get();
+            const monitors = monitorsSnapshot.docs.map(doc => doc.data().name);
+            const teams = teamsSnapshot.docs.map(doc => doc.data().name);
+
+            if (monitors.length === 0 || teams.length === 0) {
+                container.innerHTML = '<p>Crie monitores e times primeiro.</p>';
+                return;
+            }
+
+            let tableHTML = '<table><thead><tr><th>Time</th>';
+            monitors.forEach(monitor => tableHTML += `<th>${monitor}</th>`);
+            tableHTML += '</tr></thead><tbody>';
+
+            teams.forEach(team => {
+                tableHTML += `<tr><td>${team}</td>`;
+                monitors.forEach(monitor => {
+                    tableHTML += `<td><input type="checkbox" data-team="${team}" data-monitor="${monitor}"></td>`;
+                });
+                tableHTML += '</tr>';
+            });
+            tableHTML += '</tbody></table>';
+            container.innerHTML = tableHTML;
+
+            // Adiciona listener para atualizar o sumário
+            container.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+                checkbox.addEventListener('change', () => updateDistributionSummary(monitors));
+            });
+            updateDistributionSummary(monitors);
+
+        } catch (error) {
+            console.error("Erro ao criar matriz:", error);
+            container.innerHTML = '<p>Erro ao carregar dados.</p>';
+        }
     }
 
-    function renderPendingAssignments() {
-        assignmentList.innerHTML = '';
-        pendingAssignments.forEach((item, index) => {
-            const li = document.createElement('li');
-            li.textContent = `${item.team} → ${item.monitor}`;
-            const removeBtn = document.createElement('button');
-            removeBtn.textContent = '❌';
-            removeBtn.onclick = () => { pendingAssignments.splice(index, 1); renderPendingAssignments(); };
-            li.appendChild(removeBtn);
-            assignmentList.appendChild(li);
+    function updateDistributionSummary(monitors) {
+        const summaryContainer = document.getElementById('distribution-summary');
+        let summary = [];
+        monitors.forEach(monitor => {
+            const count = document.querySelectorAll(`input[data-monitor="${monitor}"]:checked`).length;
+            if (count > 0) {
+                summary.push(`<strong>${monitor}:</strong> ${count}`);
+            }
         });
+        summaryContainer.innerHTML = summary.join(' | ');
     }
 
     async function saveAssignments() {
-        if (pendingAssignments.length === 0) return showAlert('Nenhuma distribuição para salvar.', 'error');
+        const distDate = document.getElementById('distDate');
+        const date = distDate.value;
+        if (!date) return showAlert('Por favor, selecione uma data.', 'error');
+
+        const checkedBoxes = document.querySelectorAll('#distributionMatrixContainer input:checked');
+        if (checkedBoxes.length === 0) return showAlert('Nenhuma atribuição selecionada.', 'error');
+
         const batch = db.batch();
-        pendingAssignments.forEach(item => {
+        checkedBoxes.forEach(box => {
             const newCardRef = db.collection('cards').doc();
             batch.set(newCardRef, {
-                monitor: item.monitor, time: item.team,
-                data: firebase.firestore.Timestamp.fromDate(new Date(item.date + 'T12:00:00')),
-                status: "pendente", precisaAjuda: false,
+                monitor: box.dataset.monitor,
+                time: box.dataset.team,
+                data: firebase.firestore.Timestamp.fromDate(new Date(date + 'T12:00:00')),
+                status: "pendente",
+                precisaAjuda: false,
                 historico: [{ timestamp: new Date(), mensagem: "Card criado" }]
             });
         });
+
         try {
             await batch.commit();
             showAlert('Distribuição salva com sucesso!', 'success');
-            pendingAssignments = []; renderPendingAssignments();
+            document.getElementById('settingsModal').classList.remove('visible');
         } catch (error) {
             console.error("Erro ao salvar distribuição:", error);
             showAlert('Erro ao salvar a distribuição.', 'error');
         }
-    }
-    
-    function formatarDataBR(dataStr) {
-        if (!dataStr) return 'Data inválida';
-        const data = dataStr.toDate ? dataStr.toDate() : new Date(dataStr);
-        return data.toLocaleDateString('pt-BR');
-    }
-
-    function formatarDataHoraBR(dataStr) {
-        if (!dataStr) return '';
-        const data = dataStr.toDate ? dataStr.toDate() : new Date(dataStr);
-        return data.toLocaleString('pt-BR');
     }
 
     function updateView() {
@@ -335,39 +313,50 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ==========================================================
-    // 2. CONFIGURAÇÃO DOS EVENT LISTENERS (ABORDAGEM DIRETA)
+    // 2. CONFIGURAÇÃO DOS EVENT LISTENERS
     // ==========================================================
     kanbanDateSelect.addEventListener('change', updateView);
     monitorSelect.addEventListener('change', updateView);
     
-    // Listeners diretos para os botões de abrir modais
-    settingsBtn.onclick = openSettingsModal;
-    historyBtn.onclick = openHistoryModal;
+    document.addEventListener('click', (e) => {
+        const target = e.target.closest('button');
+        if (!target) return;
+        switch (target.id) {
+            case 'settingsBtn':
+                document.getElementById('settingsModal').classList.add('visible');
+                renderDistributionMatrix();
+                break;
+            case 'historyBtn':
+                document.getElementById('historyModal').classList.add('visible');
+                break;
+            case 'settingsModalCloseBtn':
+                document.getElementById('settingsModal').classList.remove('visible');
+                break;
+            case 'historyModalCloseBtn':
+                document.getElementById('historyModal').classList.remove('visible');
+                break;
+            case 'toggleMode': document.documentElement.classList.toggle('dark'); break;
+            case 'addMonitorBtn': createMonitor(); break;
+            case 'addTeamBtn': createTeam(); break;
+            case 'saveAssignmentsBtn': saveAssignments(); break;
+            case 'fetchHistoryBtn': /* função fetchHistory será chamada abaixo */ break;
+        }
+    });
 
-    // Listeners para fechar
-    settingsModalCloseBtn.onclick = closeSettingsModal;
-    historyModalCloseBtn.onclick = closeHistoryModal;
-    
-    settingsModal.addEventListener('click', (e) => { if (e.target === settingsModal) closeSettingsModal(); });
-    historyModal.addEventListener('click', (e) => { if (e.target === historyModal) closeHistoryModal(); });
-
-    // Listeners para os botões dentro dos modais
-    toggleMode.onclick = () => document.documentElement.classList.toggle('dark');
-    addMonitorBtn.onclick = createMonitor;
-    addTeamBtn.onclick = createTeam;
-    addAssignmentBtn.onclick = addAssignmentToList;
-    saveAssignmentsBtn.onclick = saveAssignments;
-    fetchHistoryBtn.onclick = fetchHistory;
+    // Listener para fechar modais
+    document.querySelectorAll('.modal-overlay').forEach(modal => {
+        modal.addEventListener('click', (e) => { if (e.target === modal) modal.classList.remove('visible'); });
+    });
     
     // ==========================================================
     // 3. INICIALIZAÇÃO DA APLICAÇÃO
     // ==========================================================
     async function initializeApp() {
         kanbanDateSelect.valueAsDate = new Date();
+        document.getElementById('distDate').valueAsDate = new Date();
         await populateSelect(monitorSelect, 'monitors', '-- Visão Geral --');
         updateView();
     }
 
     initializeApp();
-
 });
