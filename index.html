@@ -107,6 +107,208 @@
     .btn-ativo { background-color: var(--active-color); color: white; }
     .btn-reabrir { background-color: var(--reopen-color); color: white; }
     .btn-pausar { background-color: var(--pause-color); color: white; }
+
+    /* ======================================= */
+/*    ESTILOS DOS MODAIS E OUTROS ELEMENTOS (COMPLETO)   */
+/* ======================================= */
+
+/* --- Modal --- */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.6);
+  z-index: 1000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+.modal-overlay.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.modal-content {
+  background: var(--card-light);
+  padding: 2rem;
+  border-radius: 8px;
+  max-width: 600px;
+  width: 90%;
+  position: relative;
+  max-height: 85vh;
+  overflow-y: auto;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+  transform: scale(0.9);
+  transition: transform 0.3s ease;
+}
+html.dark .modal-content { 
+    background: var(--card-dark);
+}
+
+.modal-overlay.visible .modal-content {
+    transform: scale(1);
+}
+
+.modal-close {
+  position: absolute;
+  top: 10px;
+  right: 20px;
+  font-size: 2rem;
+  font-weight: bold;
+  cursor: pointer;
+  color: #888;
+  border: none;
+  background: none;
+}
+.modal-close:hover { 
+    color: #333; 
+}
+html.dark .modal-close:hover { 
+    color: white; 
+}
+
+/* --- Seções do Modal de Configurações --- */
+.setting-section {
+  margin-top: 1.5rem;
+  border-top: 1px solid var(--border-light);
+  padding-top: 1.5rem;
+}
+html.dark .setting-section { 
+    border-top-color: var(--border-dark); 
+}
+.setting-section:first-of-type { 
+    margin-top: 0; 
+    padding-top: 0; 
+    border-top: none; 
+}
+.setting-section h3, .setting-section h4 { 
+    margin-top: 0; 
+}
+.setting-section input, .setting-section select, .setting-section button {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.7rem;
+  margin-top: 0.5rem;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
+html.dark .setting-section input, html.dark .setting-section select { 
+    background: #333; 
+    color: white; 
+    border-color: #555; 
+}
+
+#assignmentList { 
+    list-style: none; 
+    padding: 0; 
+    margin-top: 1rem;
+}
+#assignmentList li { 
+    background: #eee; 
+    padding: 0.5rem; 
+    margin-top: 0.25rem; 
+    border-radius: 4px; 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+}
+html.dark #assignmentList li { 
+    background: #444; 
+}
+#assignmentList button { 
+    background: none; 
+    border: none; 
+    cursor: pointer; 
+    padding: 0 0.5rem; 
+}
+
+/* --- Filtro e Resultados do Histórico --- */
+.history-filter { 
+    display: flex; 
+    gap: 1rem; 
+    align-items: center; 
+    flex-wrap: wrap; 
+    margin-bottom: 1.5rem; 
+}
+.history-filter label {
+    margin-left: 0.5rem;
+}
+.history-filter input { 
+    padding: 0.5rem; 
+}
+.history-filter button { 
+    padding: 0.6rem 1rem; 
+}
+
+#historyResults { 
+    margin-top: 1rem; 
+}
+.history-item { 
+    margin-bottom: 1.5rem; 
+    padding-bottom: 1rem; 
+    border-bottom: 1px solid var(--border-light); 
+}
+html.dark .history-item { 
+    border-bottom-color: var(--border-dark); 
+}
+.history-item:last-child {
+    border-bottom: none;
+}
+.history-item-header { 
+    font-weight: bold; 
+}
+.history-log-list { 
+    list-style: none; 
+    padding-left: 1rem; 
+    margin-top: 0.5rem; 
+}
+.history-log-list li { 
+    padding: 0.25rem 0; 
+    font-size: 0.9rem; 
+}
+.history-log-list .log-time { 
+    color: #888; 
+    font-size: 0.8rem; 
+    margin-right: 0.5rem; 
+}
+
+/* --- Alerta Customizado --- */
+.custom-alert {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  padding: 12px 20px;
+  border-radius: 8px;
+  color: white;
+  font-weight: bold;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+  z-index: 2000;
+  opacity: 0;
+  transition: opacity 0.3s ease, transform 0.4s ease;
+  transform: translateX(-50%) translateY(30px);
+  pointer-events: none;
+}
+.custom-alert.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+  pointer-events: auto;
+}
+.custom-alert.success {
+  background-color: var(--done-color);
+}
+.custom-alert.error {
+  background-color: #dc3545;
+}
+.custom-alert p {
+  margin: 0;
+  padding: 0;
+}
   </style>
 </head>
 <body>
