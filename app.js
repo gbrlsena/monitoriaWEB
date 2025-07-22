@@ -19,6 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const boardContainer = document.getElementById('boardContainer');
     const settingsModal = document.getElementById('settingsModal');
     const historyModal = document.getElementById('historyModal');
+    const cardHistoryModal = document.getElementById('cardHistoryModal');
     
     // --- Variáveis Globais ---
     let unsubscribeFromData = null;
@@ -64,35 +65,24 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
                 }
                 const totalCards = allCards.length;
-                const completedCards = allCards.filter(c => c.status === 'feito');
-                const activeCards = allCards.filter(c => c.status === 'ativo');
-                const pendingCards = allCards.filter(c => c.status === 'pendente');
+                const completedCards = allCards.filter(c => c.currentStatus && c.currentStatus.state === 'feito');
+                const activeCards = allCards.filter(c => c.currentStatus && c.currentStatus.state === 'ativo');
+                const pendingCards = allCards.filter(c => !c.currentStatus || c.currentStatus.state === 'pendente');
                 const percentage = totalCards > 0 ? Math.round((completedCards.length / totalCards) * 100) : 0;
                 
                 const dashboardHTML = `
                     <div class="progress-container">
-                        <div class="progress-circle" style="--progress: ${percentage}%">
-                            <div class="progress-inner"><div><div class="progress-percentage">${percentage}%</div><div class="progress-label">Concluído</div></div></div>
-                        </div>
+                        <div class="progress-circle" style="--progress: ${percentage}%"><div class="progress-inner"><div><div class="progress-percentage">${percentage}%</div><div class="progress-label">Concluído</div></div></div></div>
                     </div>
                     <div class="dashboard-grid">
-                        <div class="dashboard-panel">
-                            <h3>Ativos no Momento</h3>
-                            <ul>${ activeCards.length > 0 ? activeCards.map(c => `<li><span class="monitor-name">${c.monitor}</span> em <span class="team-name">${c.time}</span></li>`).join('') : '<li>Ninguém ativo no momento.</li>' }</ul>
-                        </div>
-                        <div class="dashboard-panel">
-                            <h3>Pendentes</h3>
-                            <ul>${ pendingCards.length > 0 ? pendingCards.map(c => `<li><span class="team-name">${c.time}</span> (com <span class="monitor-name">${c.monitor}</span>)</li>`).join('') : '<li>Nenhum card pendente.</li>' }</ul>
-                        </div>
-                        <div class="dashboard-panel">
-                            <h3>Concluídos Hoje</h3>
-                            <ul>${ completedCards.length > 0 ? completedCards.map(c => `<li><span class="team-name">${c.time}</span> (por <span class="monitor-name">${c.monitor}</span>)</li>`).join('') : '<li>Nenhum card concluído ainda.</li>' }</ul>
-                        </div>
+                        <div class="dashboard-panel"><h3>Ativos no Momento</h3><ul>${ activeCards.length > 0 ? activeCards.map(c => `<li><span class="monitor-name">${c.monitor}</span> em <span class="team-name">${c.time}</span></li>`).join('') : '<li>Ninguém ativo no momento.</li>' }</ul></div>
+                        <div class="dashboard-panel"><h3>Pendentes</h3><ul>${ pendingCards.length > 0 ? pendingCards.map(c => `<li><span class="team-name">${c.time}</span> (com <span class="monitor-name">${c.monitor}</span>)</li>`).join('') : '<li>Nenhum card pendente.</li>' }</ul></div>
+                        <div class="dashboard-panel"><h3>Concluídos Hoje</h3><ul>${ completedCards.length > 0 ? completedCards.map(c => `<li><span class="team-name">${c.time}</span> (por <span class="monitor-name">${c.monitor}</span>)</li>`).join('') : '<li>Nenhum card concluído ainda.</li>' }</ul></div>
                     </div>`;
                 boardContainer.innerHTML = dashboardHTML;
             }, error => {
                 console.error("Erro ao carregar dashboard:", error);
-                boardContainer.innerHTML = `<p class="placeholder-text error">Ocorreu um erro ao carregar o painel. Verifique se o índice do Firestore foi criado.</p>`;
+                boardContainer.innerHTML = `<p class="placeholder-text error">Ocorreu um erro. Verifique se o índice do Firestore foi criado.</p>`;
             });
     }
 
@@ -105,13 +95,15 @@ document.addEventListener('DOMContentLoaded', () => {
             .onSnapshot(snapshot => {
                 let cards = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 cards.sort((a, b) => {
+                    const statusA = a.currentStatus ? a.currentStatus.state : 'pendente';
+                    const statusB = b.currentStatus ? b.currentStatus.state : 'pendente';
                     const statusOrder = { 'ativo': 1, 'pendente': 2, 'feito': 3 };
-                    return (statusOrder[a.status] || 99) - (statusOrder[b.status] || 99);
+                    return (statusOrder[statusA] || 99) - (statusOrder[statusB] || 99);
                 });
                 renderCards(cards);
             }, error => {
-                console.error("Erro ao carregar cards do Kanban:", error);
-                boardContainer.innerHTML = `<p class="placeholder-text error">Erro ao carregar os cards. Verifique a console (F12) para um link de criação de índice.</p>`;
+                console.error("Erro ao carregar Kanban:", error);
+                boardContainer.innerHTML = `<p class="placeholder-text error">Ocorreu um erro. Verifique a console (F12) para um link de criação de índice.</p>`;
             });
     }
     
@@ -124,8 +116,12 @@ document.addEventListener('DOMContentLoaded', () => {
         cards.forEach(card => {
             const el = document.createElement('div');
             el.className = 'card';
-            const isDone = card.status === 'feito';
-            const isActive = card.status === 'ativo';
+            const statusState = card.currentStatus ? card.currentStatus.state : 'pendente';
+            const statusTime = card.currentStatus ? `(em ${formatarDataHoraBR(card.currentStatus.timestamp)})` : '';
+            const isDone = statusState === 'feito';
+            const isActive = statusState === 'ativo';
+            const hasBeenActive = card.foiAtivado === true;
+
             if (isDone) el.classList.add('done');
             if (isActive) el.classList.add('active');
             
@@ -133,14 +129,22 @@ document.addEventListener('DOMContentLoaded', () => {
             if (isDone) {
                 actionsHTML = `<button class="btn btn-reabrir" data-id="${card.id}">↩️ Reabrir</button><button class="btn btn-copiar" data-id="${card.id}" data-team="${card.time}">📋 Copiar</button>`;
             } else {
-                actionsHTML = `<button class="btn btn-concluir" data-id="${card.id}">✅ Concluir</button><button class="btn btn-ajuda" data-id="${card.id}">🆘 Pedir Ajuda</button>`;
+                const concluirDisabled = !hasBeenActive ? 'disabled' : '';
+                const concluirTitle = !hasBeenActive ? 'title="Marque como Ativo para poder concluir"' : '';
+                actionsHTML = `<button class="btn btn-concluir" data-id="${card.id}" ${concluirDisabled} ${concluirTitle}>✅ Concluir</button><button class="btn btn-ajuda" data-id="${card.id}">🆘 Pedir Ajuda</button>`;
                 if (isActive) {
                     actionsHTML += `<button class="btn btn-pausar" data-id="${card.id}">⏸️ Pausar</button>`;
                 } else {
                     actionsHTML += `<button class="btn btn-ativo" data-id="${card.id}">🔵 Ativo</button>`;
                 }
             }
-            el.innerHTML = `<div class="card-content"><h3>${card.time}</h3><p><strong>Status:</strong> ${card.status}</p></div><div class="actions">${actionsHTML}</div>`;
+            el.innerHTML = `
+                <button class="card-history-btn" data-card-id="${card.id}" title="Ver Histórico">🕰️</button>
+                <div class="card-content">
+                    <h3>${card.time}</h3>
+                    <p><strong>Status:</strong> ${statusState} <span class="status-time">${statusTime}</span></p>
+                </div>
+                <div class="actions">${actionsHTML}</div>`;
             boardContainer.appendChild(el);
         });
         addCardButtonListeners();
@@ -153,35 +157,71 @@ document.addEventListener('DOMContentLoaded', () => {
         boardContainer.querySelectorAll('.btn-reabrir').forEach(btn => btn.addEventListener('click', () => reabrirCard(btn.dataset.id)));
         boardContainer.querySelectorAll('.btn-pausar').forEach(btn => btn.addEventListener('click', () => pausarCard(btn.dataset.id)));
         boardContainer.querySelectorAll('.btn-copiar').forEach(btn => btn.addEventListener('click', () => copyText(btn.dataset.team)));
+        boardContainer.querySelectorAll('.card-history-btn').forEach(btn => btn.addEventListener('click', () => showCardHistory(btn.dataset.cardId)));
     }
 
     function toggleCardButtons(cardId, disabled) {
-        const button = boardContainer.querySelector(`[data-id="${cardId}"]`);
+        const button = boardContainer.querySelector(`[data-id="${cardId}"], [data-card-id="${cardId}"]`);
         if (button) {
             const cardElement = button.closest('.card');
             if (cardElement) cardElement.querySelectorAll('button').forEach(btn => btn.disabled = disabled);
         }
     }
 
-    async function addLogEntry(id, payload, logMessage) {
+    async function addLogEntry(id, statusState, logMessage, extraPayload = {}) {
         toggleCardButtons(id, true);
         const logEntry = { timestamp: new Date(), mensagem: logMessage };
-        const finalPayload = { ...payload, historico: firebase.firestore.FieldValue.arrayUnion(logEntry) };
-        try { await db.collection("cards").doc(id).update(finalPayload); } catch (error) {
-            console.error("Erro ao atualizar o card:", error);
+        const payload = {
+            currentStatus: { state: statusState, timestamp: new Date() },
+            historico: firebase.firestore.FieldValue.arrayUnion(logEntry),
+            ...extraPayload
+        };
+        try { await db.collection("cards").doc(id).update(payload); } catch (error) {
+            console.error("Erro ao atualizar card:", error);
             showAlert('Erro ao atualizar o card.', 'error');
             toggleCardButtons(id, false);
         }
     }
 
-    function marcarFeito(id) { addLogEntry(id, { status: "feito" }, "Card concluído"); }
-    function pedirAjuda(id) { addLogEntry(id, { status: "pendente", precisaAjuda: true }, "Pedido de ajuda solicitado"); }
-    function marcarAtivo(id) { addLogEntry(id, { status: "ativo", precisaAjuda: false }, "Marcado como ativo"); }
-    function reabrirCard(id) { addLogEntry(id, { status: "pendente" }, "Card reaberto"); }
-    function pausarCard(id) { addLogEntry(id, { status: "pendente" }, "Atividade pausada"); }
+    function marcarFeito(id) { addLogEntry(id, "feito", "Card concluído"); }
+    function marcarAtivo(id) { addLogEntry(id, "ativo", "Marcado como ativo", { foiAtivado: true }); }
+    function reabrirCard(id) { addLogEntry(id, "pendente", "Card reaberto"); }
+    function pausarCard(id) { addLogEntry(id, "pendente", "Atividade pausada"); }
+    
+    async function pedirAjuda(id) {
+        toggleCardButtons(id, true);
+        const logEntry = { timestamp: new Date(), mensagem: "Pedido de ajuda solicitado" };
+        try { await db.collection("cards").doc(id).update({ historico: firebase.firestore.FieldValue.arrayUnion(logEntry), precisaAjuda: true }); }
+        catch(error) { showAlert('Erro ao pedir ajuda.', 'error'); }
+        finally { toggleCardButtons(id, false); }
+    }
+
     function copyText(teamName) {
         const textToCopy = `Monitoria do Time ${teamName} atualizada ✅`;
         navigator.clipboard.writeText(textToCopy).then(() => showAlert('Texto copiado!', 'success'), () => showAlert('Falha ao copiar.', 'error'));
+    }
+
+    async function showCardHistory(cardId) {
+        const cardHistoryModal = document.getElementById('cardHistoryModal');
+        const titleEl = document.getElementById('cardHistoryTitle');
+        const resultsEl = document.getElementById('cardHistoryResults');
+        resultsEl.innerHTML = '<p>Carregando histórico...</p>';
+        cardHistoryModal.classList.add('visible');
+        try {
+            const doc = await db.collection('cards').doc(cardId).get();
+            if (!doc.exists) { resultsEl.innerHTML = '<p>Card não encontrado.</p>'; return; }
+            const card = doc.data();
+            titleEl.textContent = `Histórico - ${card.time}`;
+            let logsHTML = '';
+            if (card.historico && card.historico.length > 0) {
+                card.historico.sort((a, b) => a.timestamp.toDate() - b.timestamp.toDate());
+                card.historico.forEach(log => { logsHTML += `<li><span class="log-time">${formatarDataHoraBR(log.timestamp)}:</span> ${log.mensagem}</li>`; });
+            } else { logsHTML += '<li>Nenhum histórico detalhado.</li>'; }
+            resultsEl.innerHTML = `<ul class="log-list">${logsHTML}</ul>`;
+        } catch (error) {
+            console.error("Erro ao buscar histórico do card:", error);
+            resultsEl.innerHTML = '<p>Ocorreu um erro ao buscar o histórico.</p>';
+        }
     }
 
     async function createMonitor() {
@@ -215,10 +255,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const teamsSnapshot = await db.collection('teams').orderBy('name').get();
             const monitors = monitorsSnapshot.docs.map(doc => doc.data().name);
             const teams = teamsSnapshot.docs.map(doc => doc.data().name);
-            if (monitors.length === 0 || teams.length === 0) {
-                container.innerHTML = '<p>Crie monitores e times primeiro.</p>';
-                return;
-            }
+            if (monitors.length === 0 || teams.length === 0) { container.innerHTML = '<p>Crie monitores e times primeiro.</p>'; return; }
             let tableHTML = '<table><thead><tr><th>Time</th>';
             monitors.forEach(monitor => tableHTML += `<th>${monitor}</th>`);
             tableHTML += '</tr></thead><tbody>';
@@ -231,10 +268,7 @@ document.addEventListener('DOMContentLoaded', () => {
             container.innerHTML = tableHTML;
             container.querySelectorAll('input[type="checkbox"]').forEach(checkbox => checkbox.addEventListener('change', () => updateDistributionSummary(monitors)));
             updateDistributionSummary(monitors);
-        } catch (error) {
-            console.error("Erro ao criar matriz:", error);
-            container.innerHTML = '<p>Erro ao carregar dados.</p>';
-        }
+        } catch (error) { console.error("Erro ao criar matriz:", error); container.innerHTML = '<p>Erro ao carregar dados.</p>'; }
     }
 
     function updateDistributionSummary(monitors) {
@@ -252,23 +286,24 @@ document.addEventListener('DOMContentLoaded', () => {
         const checkedBoxes = document.querySelectorAll('#distributionMatrixContainer input:checked');
         if (checkedBoxes.length === 0) return showAlert('Nenhuma atribuição selecionada.', 'error');
         const batch = db.batch();
+        const now = new Date();
         checkedBoxes.forEach(box => {
             const newCardRef = db.collection('cards').doc();
             batch.set(newCardRef, {
-                monitor: box.dataset.monitor, time: box.dataset.team,
+                monitor: box.dataset.monitor,
+                time: box.dataset.team,
                 data: firebase.firestore.Timestamp.fromDate(new Date(distDate + 'T12:00:00')),
-                status: "pendente", precisaAjuda: false,
-                historico: [{ timestamp: new Date(), mensagem: "Card criado" }]
+                currentStatus: { state: "pendente", timestamp: now },
+                precisaAjuda: false,
+                foiAtivado: false,
+                historico: [{ timestamp: now, mensagem: "Card criado" }]
             });
         });
         try {
             await batch.commit();
             showAlert('Distribuição salva!', 'success');
             document.getElementById('settingsModal').classList.remove('visible');
-        } catch (error) {
-            console.error("Erro ao salvar:", error);
-            showAlert('Erro ao salvar a distribuição.', 'error');
-        }
+        } catch (error) { console.error("Erro ao salvar:", error); showAlert('Erro ao salvar a distribuição.', 'error'); }
     }
 
     async function fetchHistory() {
@@ -291,13 +326,12 @@ document.addEventListener('DOMContentLoaded', () => {
             snapshot.docs.forEach(doc => {
                 const card = doc.data();
                 const cardEl = document.createElement('div'); cardEl.className = 'history-item';
-                let logsHTML = '<ul class="history-log-list">';
+                let logsHTML = '';
                 if (card.historico && card.historico.length > 0) {
                     card.historico.sort((a, b) => a.timestamp.toDate() - b.timestamp.toDate());
                     card.historico.forEach(log => { logsHTML += `<li><span class="log-time">${formatarDataHoraBR(log.timestamp)}:</span> ${log.mensagem}</li>`; });
                 } else { logsHTML += '<li>Nenhum log detalhado.</li>'; }
-                logsHTML += '</ul>';
-                cardEl.innerHTML = `<div class="history-item-header"><span>${card.time} (${card.monitor}) - </span><span>${formatarDataBR(card.data)}</span></div>${logsHTML}`;
+                cardEl.innerHTML = `<div class="history-item-header"><span>${card.time} (${card.monitor}) - </span><span>${formatarDataBR(card.data)}</span></div><ul class="log-list">${logsHTML}</ul>`;
                 historyResults.appendChild(cardEl);
             });
         } catch (error) {
@@ -355,6 +389,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 break;
             case 'settingsModalCloseBtn': settingsModal.classList.remove('visible'); break;
             case 'historyModalCloseBtn': historyModal.classList.remove('visible'); break;
+            case 'cardHistoryModalCloseBtn': cardHistoryModal.classList.remove('visible'); break;
             case 'toggleMode': document.documentElement.classList.toggle('dark'); break;
             case 'addMonitorBtn': createMonitor(); break;
             case 'addTeamBtn': createTeam(); break;
