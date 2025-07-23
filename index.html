@@ -6,44 +6,44 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
   
   <style>
     :root {
         --primary-color: #49CBA8;
         --active-color: #3b82f6;
-        --done-color: #28a745;
-        --pause-color: #fd7e14;
-        --reopen-color: #6c757d;
-        --help-color: #ffc107;
-        --copy-color: #5bc0de;
-        --background-light: #f4f7f6;
-        --background-dark: #121212;
+        --done-color: #16a34a;
+        --pause-color: #f97316;
+        --reopen-color: #64748b;
+        --help-color: #f59e0b;
+        --help-color-text: #b45309;
+        --copy-color: #0ea5e9;
+        --delete-color: #dc3545;
+        --background-light: #f8fafc;
         --card-light: #ffffff;
+        --text-light: #1e293b;
+        --border-light: #e2e8f0;
+        --background-dark: #121212;
         --card-dark: #1e1e1e;
-        --text-light: #212529;
         --text-dark: #e9e9e9;
-        --border-light: #dee2e6;
-        --border-dark: #444;
+        --border-dark: #334155;
     }
     html, body { font-family: 'Poppins', sans-serif; }
-    body { 
-        margin: 0; background: var(--background-light); color: var(--text-light);
-        transition: background 0.3s, color 0.3s;
-    }
+    body { margin: 0; background: var(--background-light); color: var(--text-light); transition: background 0.3s, color 0.3s; }
     html.dark body { background: var(--background-dark); color: var(--text-dark); }
-    header { 
-        padding: 1rem 2rem; background: var(--primary-color); color: white; 
-        display: flex; justify-content: space-between; align-items: center; 
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    header h1 { margin: 0; font-size: 1.5rem; }
-    .header-actions { display: flex; align-items: center; gap: 1rem; }
-    header select, header input[type="date"] { 
-        font-size: 1rem; padding: 0.5rem; border-radius: 6px; border: none; 
-        background-color: rgba(255,255,255,0.9); color: #333;
-    }
-    .icon-btn { background: none; border: none; font-size: 1.6rem; cursor: pointer; color: white; padding: 0; }
+    
+    /* --- Header --- */
+    header { padding: 0.75rem 2rem; background: var(--primary-color); color: white; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .header-left h1 { margin: 0; font-size: 1.5rem; }
+    .header-right { display: flex; align-items: center; gap: 1.5rem; }
+    .control-group { display: flex; align-items: center; gap: 0.5rem; }
+    .control-group label { font-weight: 500; font-size: 0.9rem; }
+    .header-action-buttons { display: flex; align-items: center; gap: 1rem; }
+    header select, header input[type="date"] { font-size: 1rem; padding: 0.5rem; border-radius: 6px; border: 1px solid transparent; background-color: rgba(255,255,255,0.9); color: #333; }
+    .icon-btn { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: white; padding: 5px; line-height: 1; transition: color 0.2s; }
+    .icon-btn:hover { color: rgba(255,255,255,0.8); }
+
     main { padding: 2rem; }
     .placeholder-text { text-align: center; color: #888; grid-column: 1 / -1; font-size: 1.2rem; }
     .kanban-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; }
@@ -57,139 +57,137 @@
     .progress-inner { width: 170px; height: 170px; border-radius: 50%; background: var(--background-light); display: grid; place-items: center; text-align: center; }
     html.dark .progress-inner { background: var(--background-dark); }
     .progress-percentage { font-size: 3rem; font-weight: 700; color: var(--done-color); }
-    .progress-label { font-size: 1rem; color: #6c757d; }
-    html.dark .progress-label { color: #a0a0a0; }
-    .dashboard-panel { background: var(--card-light); border-radius: 8px; padding: 1.5rem; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-    html.dark .dashboard-panel { background: var(--card-dark); box-shadow: none; }
-    .dashboard-panel h3 { margin-top: 0; border-bottom: 2px solid var(--border-light); padding-bottom: 0.5rem; }
+    .progress-label { font-size: 1rem; color: #64748b; }
+    html.dark .progress-label { color: #94a3b8; }
+    .dashboard-panel { background: var(--card-light); border-radius: 12px; padding: 1.5rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.07), 0 2px 4px -2px rgba(0,0,0,0.07); }
+    html.dark .dashboard-panel { background: var(--card-dark); box-shadow: none; border: 1px solid var(--border-dark); }
+    .dashboard-panel h3 { margin-top: 0; border-bottom: 1px solid var(--border-light); padding-bottom: 0.75rem; font-size: 1.1rem; }
     html.dark .dashboard-panel h3 { border-bottom-color: var(--border-dark); }
     .dashboard-panel ul { list-style: none; padding: 0; margin: 0; }
     .dashboard-panel li { padding: 0.75rem 0.25rem; border-bottom: 1px solid var(--border-light); }
     html.dark .dashboard-panel li { border-bottom-color: var(--border-dark); }
     .dashboard-panel li:last-child { border-bottom: none; }
-    .dashboard-panel .monitor-name { font-weight: 500; }
-    .dashboard-panel .team-name { color: #555; }
-    html.dark .dashboard-panel .team-name { color: #ccc; }
+    .dashboard-panel .monitor-name { font-weight: 600; }
+    .dashboard-panel .team-name { color: #475569; }
+    html.dark .dashboard-panel .team-name { color: #cbd5e1; }
 
     /* --- Cards --- */
-    .card { background: var(--card-light); border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); display: flex; flex-direction: column; border-top: 4px solid var(--border-light); transition: transform 0.2s ease, box-shadow 0.2s ease; position: relative; }
-    .card:hover { transform: translateY(-5px); box-shadow: 0 8px 12px rgba(0,0,0,0.08); }
-    html.dark .card { background: var(--card-dark); border-top-color: var(--border-dark); box-shadow: none; }
+    .card { background: var(--card-light); border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.07), 0 2px 4px -2px rgba(0,0,0,0.07); display: flex; flex-direction: column; border-top: 4px solid var(--border-light); transition: transform 0.2s ease, box-shadow 0.2s ease; position: relative; }
+    .card:hover { transform: translateY(-5px); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.07), 0 4px 6px -4px rgba(0,0,0,0.07); }
+    html.dark .card { background: var(--card-dark); border: 1px solid var(--border-dark); box-shadow: none; }
     .card.active { border-top-color: var(--active-color); }
-    .card.done { border-top-color: var(--done-color); opacity: 0.8; }
-    .card-history-btn { position: absolute; top: 10px; right: 10px; background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #aaa; padding: 5px; line-height: 1; }
+    .card.done { border-top-color: var(--done-color); opacity: 0.9; }
+    .card-history-btn { position: absolute; top: 8px; right: 8px; background: none; border: none; font-size: 1.2rem; cursor: pointer; color: #ccc; padding: 5px; line-height: 1; transition: color 0.2s; }
     .card-history-btn:hover { color: var(--primary-color); }
-    .card-content { padding: 1rem; flex-grow: 1; min-height: 80px; }
-    .card-content h3 { margin-top: 0; font-size: 1.2rem; padding-right: 30px; } /* Espaço para o botão */
-    .card-content p { margin: 0.5rem 0; font-size: 0.9rem; color: #6c757d; }
-    .card-content .status-time { font-size: 0.8rem; color: #aaa; }
-    html.dark .card-content p { color: #a0a0a0; }
-    .actions { padding: 1rem; border-top: 1px solid var(--border-light); display: flex; gap: 0.5rem; flex-wrap: wrap; }
+    .card-content { padding: 1.25rem; flex-grow: 1; min-height: 80px; }
+    .card-content h3 { margin-top: 0; font-size: 1.25rem; padding-right: 30px; }
+    .card-content p { margin: 0.5rem 0; font-size: 0.9rem; color: #64748b; }
+    .card-content .status-time { font-size: 0.8rem; color: #94a3b8; }
+    html.dark .card-content p, html.dark .card-content .status-time { color: #94a3b8; }
+    .actions { padding: 1.25rem; border-top: 1px solid var(--border-light); display: flex; gap: 0.75rem; flex-wrap: wrap; }
     html.dark .actions { border-top-color: var(--border-dark); }
-    .btn { width: auto; flex-grow: 1; border: none; border-radius: 6px; font-weight: 500; cursor: pointer; padding: 0.6rem; }
-    /* --- .btn:disabled { cursor: wait; opacity: 0.7; } --- */
+    .btn { flex-grow: 1; border: 2px solid transparent; border-radius: 8px; font-weight: 600; cursor: pointer; padding: 0.7rem 0.5rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem; transition: all 0.2s ease; }
+    .btn:hover { filter: brightness(95%); }
+    .btn:active { filter: brightness(90%); transform: scale(0.98); }
+    .btn:disabled { cursor: not-allowed; opacity: 0.6; background-color: #6c757d !important; border-color: transparent !important; color: white !important; }
+    .btn i { font-size: 0.9rem; }
     .btn-concluir { background-color: var(--done-color); color: white; }
-    .btn-ajuda { background-color: var(--help-color); color: black; }
     .btn-ativo { background-color: var(--active-color); color: white; }
+    .btn-ajuda { background-color: transparent; border-color: var(--help-color); color: var(--help-color-text); }
+    .btn-ajuda:hover { background-color: var(--help-color); color: white; }
+    .btn-pausar { background-color: transparent; border-color: var(--pause-color); color: var(--pause-color); }
+    .btn-pausar:hover { background-color: var(--pause-color); color: white; }
     .btn-reabrir { background-color: var(--reopen-color); color: white; }
     .btn-copiar { background-color: var(--copy-color); color: white; }
-    .btn-pausar { background-color: var(--pause-color); color: white; }
-    .btn:disabled { 
-        cursor: not-allowed; /* Muda o cursor para "não permitido" */
-        opacity: 0.6; 
-        background-color: #6c757d; /* Garante um fundo cinza consistente */
-    }
 
-    /* --- Distribuição por Matriz --- */
-    .distribution-matrix { overflow-x: auto; margin-top: 1rem; }
-    .distribution-matrix table { width: 100%; border-collapse: collapse; }
-    .distribution-matrix th, .distribution-matrix td { padding: 0.75rem; border: 1px solid var(--border-light); text-align: center; }
-    html.dark .distribution-matrix th, html.dark .distribution-matrix td { border-color: var(--border-dark); }
-    .distribution-matrix th { background: #f8f9fa; }
-    html.dark .distribution-matrix th { background: #333; }
-    .distribution-matrix td:first-child { text-align: left; font-weight: 500; }
-    .distribution-matrix input[type="checkbox"] { width: 20px; height: 20px; cursor: pointer; }
-    #distribution-summary { margin-top: 1rem; font-weight: 500; }
-
-    /* --- Modals e Outros --- */
+    /* --- Modal com Abas --- */
     .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: rgba(0, 0, 0, 0.6); z-index: 1000; display: flex; justify-content: center; align-items: center; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
     .modal-overlay.visible { opacity: 1; pointer-events: auto; }
-    .modal-content { background: var(--card-light); padding: 2rem; border-radius: 8px; max-width: 800px; width: 90%; position: relative; max-height: 85vh; overflow-y: auto; box-shadow: 0 5px 15px rgba(0,0,0,0.3); transform: scale(0.9); transition: transform 0.3s ease; }
+    .modal-content { background: var(--card-light); border-radius: 8px; max-width: 900px; width: 90%; height: 80vh; display: flex; box-shadow: 0 5px 15px rgba(0,0,0,0.3); transform: scale(0.95); transition: transform 0.3s ease; }
     html.dark .modal-content { background: var(--card-dark); }
     .modal-overlay.visible .modal-content { transform: scale(1); }
-    .modal-close { position: absolute; top: 10px; right: 20px; font-size: 2rem; font-weight: bold; cursor: pointer; color: #888; border: none; background: none; }
+    .modal-sidebar { flex: 0 0 200px; background: #f8fafc; border-right: 1px solid var(--border-light); padding: 1rem; }
+    html.dark .modal-sidebar { background: #1a2233; border-right: 1px solid var(--border-dark); }
+    .modal-sidebar .nav-btn { display: block; width: 100%; text-align: left; background: none; border: none; padding: 0.75rem; font-size: 1rem; border-radius: 6px; cursor: pointer; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-light); }
+    html.dark .modal-sidebar .nav-btn { color: var(--text-dark); }
+    .modal-sidebar .nav-btn.active { background: var(--primary-color); color: white; }
+    .modal-sidebar .nav-btn:not(.active):hover { background: #e2e8f0; }
+    html.dark .modal-sidebar .nav-btn:not(.active):hover { background: #293548; }
+    .modal-main-content { flex-grow: 1; padding: 2rem; overflow-y: auto; position: relative; }
+    .modal-close { position: absolute; top: 10px; right: 20px; font-size: 2rem; font-weight: bold; cursor: pointer; color: #aaa; border: none; background: none; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
     .setting-section { margin-top: 1.5rem; border-top: 1px solid var(--border-light); padding-top: 1.5rem; }
-    html.dark .setting-section { border-top-color: var(--border-dark); }
     .setting-section:first-of-type { margin-top: 0; padding-top: 0; border-top: none; }
-    .setting-section input, .setting-section select, .setting-section button { width: 100%; box-sizing: border-box; padding: 0.7rem; margin-top: 0.5rem; border-radius: 6px; border: 1px solid #ccc; }
-    html.dark .setting-section input, html.dark .setting-section select { background: #333; color: white; border-color: #555; }
-    .history-filter { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; margin-bottom: 1.5rem; }
-    .log-list { list-style: none; padding-left: 0; margin-top: 0.5rem; }
-    .log-list li { padding: 0.5rem; font-size: 0.9rem; border-bottom: 1px solid var(--border-light); }
-    html.dark .log-list li { border-bottom-color: var(--border-dark); }
-    .log-list li:last-child { border-bottom: none; }
-    .log-list .log-time { color: #888; font-size: 0.8rem; margin-right: 0.5rem; }
-    .custom-alert { position: fixed; bottom: 20px; left: 50%; padding: 12px 20px; border-radius: 8px; color: white; font-weight: bold; box-shadow: 0 4px 10px rgba(0,0,0,0.2); z-index: 2000; opacity: 0; transition: opacity 0.3s ease, transform 0.4s ease; transform: translateX(-50%) translateY(30px); pointer-events: none; }
-    .custom-alert.show { opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: auto; }
-    .custom-alert.success { background-color: var(--done-color); }
-    .custom-alert.error { background-color: #dc3545; }
+    .setting-section h3 { margin-top: 0; }
+    .management-list { list-style: none; padding: 0; margin-top: 1rem; }
+    .management-list li { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; border-radius: 6px; }
+    .management-list li:nth-child(odd) { background: #f8fafc; }
+    html.dark .management-list li:nth-child(odd) { background: #1a2233; }
+    .management-list .action-buttons button { background: none; border: none; font-size: 1.1rem; cursor: pointer; margin-left: 0.75rem; color: #94a3b8; transition: color 0.2s; }
+    .management-list .action-buttons button:hover { color: var(--text-light); }
+    html.dark .management-list .action-buttons button:hover { color: var(--text-dark); }
+    .management-list .action-buttons .btn-delete:hover { color: var(--delete-color); }
+    .custom-alert { /* ... */ }
   </style>
 </head>
 <body>
   <header>
-    <div class="header-title"><h1>Monitoria</h1></div>
-    <div class="header-actions">
-      <input type="date" id="kanbanDateSelect">
-      <select id="monitorSelect"><option value="">-- Visão Geral --</option></select>
-      <button id="historyBtn" class="icon-btn" title="Histórico">📜</button>
-      <button id="settingsBtn" class="icon-btn" title="Configurações">⚙️</button>
+    <div class="header-left"><h1>Monitoria</h1></div>
+    <div class="header-right">
+      <div class="control-group"><label for="kanbanDateSelect">Data:</label><input type="date" id="kanbanDateSelect"></div>
+      <div class="control-group"><label for="monitorSelect">Visualização:</label><select id="monitorSelect"><option value="">-- Visão Geral --</option></select></div>
+      <div class="header-action-buttons">
+        <button id="historyBtn" class="icon-btn" title="Histórico"><i class="fas fa-history"></i></button>
+        <button id="settingsBtn" class="icon-btn" title="Configurações"><i class="fas fa-cog"></i></button>
+      </div>
     </div>
   </header>
   
-  <main id="boardContainer">
-    <!-- O conteúdo será injetado aqui pelo JS -->
-  </main>
+  <main id="boardContainer"></main>
 
-  <!-- Modal de Configurações -->
+  <!-- Modal de Configurações com Abas -->
   <div id="settingsModal" class="modal-overlay">
     <div class="modal-content">
-      <button class="modal-close" id="settingsModalCloseBtn">×</button>
-      <h2>Configurações</h2>
-      <div class="setting-section"><button id="toggleMode">Alternar Modo Claro/Escuro</button></div>
-      <div class="setting-section"><h3>Adicionar Monitor</h3><input type="text" id="newMonitorName" placeholder="Nome do monitor"><button id="addMonitorBtn">Criar Monitor</button></div>
-      <div class="setting-section"><h3>Adicionar Time</h3><input type="text" id="newTeamName" placeholder="Nome do time"><button id="addTeamBtn">Criar Time</button></div>
-      <div class="setting-section">
-        <h3>Distribuir Cards</h3><p>Selecione a data e marque as atribuições na matriz abaixo.</p><input type="date" id="distDate">
-        <div id="distributionMatrixContainer" class="distribution-matrix"></div>
-        <div id="distribution-summary"></div>
-        <button id="saveAssignmentsBtn" class="btn-concluir">Salvar Distribuição</button>
+      <div class="modal-sidebar">
+        <button class="nav-btn active" data-tab="tab-distribute">Distribuição</button>
+        <button class="nav-btn" data-tab="tab-monitors">Monitores</button>
+        <button class="nav-btn" data-tab="tab-teams">Times</button>
+        <button class="nav-btn" data-tab="tab-general">Geral</button>
+      </div>
+      <div class="modal-main-content">
+        <button class="modal-close" id="settingsModalCloseBtn">×</button>
+        <div id="tab-distribute" class="tab-content active">
+          <h2>Distribuição de Cards</h2>
+          <div class="setting-section">
+            <p>Selecione a data e marque as atribuições na matriz abaixo.</p><input type="date" id="distDate">
+            <div id="distributionMatrixContainer" class="distribution-matrix"></div>
+            <div id="distribution-summary"></div><button id="saveAssignmentsBtn" class="btn btn-concluir"><i class="fas fa-save"></i> Salvar Distribuição</button>
+          </div>
+        </div>
+        <div id="tab-monitors" class="tab-content">
+          <h2>Gerenciar Monitores</h2>
+          <div class="setting-section"><input type="text" id="newMonitorName" placeholder="Nome do novo monitor..."><button id="addMonitorBtn"><i class="fas fa-plus-circle"></i> Adicionar Monitor</button></div>
+          <div class="setting-section"><h3>Monitores Atuais</h3><ul id="monitorsList" class="management-list"></ul></div>
+        </div>
+        <div id="tab-teams" class="tab-content">
+          <h2>Gerenciar Times</h2>
+          <div class="setting-section"><input type="text" id="newTeamName" placeholder="Nome do novo time..."><button id="addTeamBtn"><i class="fas fa-plus-circle"></i> Adicionar Time</button></div>
+          <div class="setting-section"><h3>Times Atuais</h3><ul id="teamsList" class="management-list"></ul></div>
+        </div>
+        <div id="tab-general" class="tab-content">
+          <h2>Configurações Gerais</h2>
+          <div class="setting-section"><h3>Aparência</h3><button id="toggleMode"><i class="fas fa-moon"></i> Alternar Modo Escuro</button></div>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- Modal de Histórico GERAL -->
-  <div id="historyModal" class="modal-overlay">
-    <div class="modal-content">
-        <button class="modal-close" id="historyModalCloseBtn">×</button>
-        <h2>Histórico Geral</h2>
-        <div class="history-filter"><label for="historyDateStart">De:</label><input type="date" id="historyDateStart"><label for="historyDateEnd">Até:</label><input type="date" id="historyDateEnd"><button id="fetchHistoryBtn">Buscar</button></div>
-        <div id="historyResults" class="log-list"></div>
-    </div>
-  </div>
-
-  <!-- Modal de Histórico INDIVIDUAL do Card -->
-  <div id="cardHistoryModal" class="modal-overlay">
-    <div class="modal-content">
-        <button class="modal-close" id="cardHistoryModalCloseBtn">×</button>
-        <h2 id="cardHistoryTitle">Histórico do Card</h2>
-        <div id="cardHistoryResults" class="log-list"></div>
-    </div>
-  </div>
-
-  <!-- Elemento para Alertas em Tela -->
+  <!-- Outros Modais -->
+  <div id="historyModal" class="modal-overlay"></div>
+  <div id="cardHistoryModal" class="modal-overlay"></div>
   <div id="customAlert" class="custom-alert"><p id="customAlertMessage"></p></div>
 
-  <!-- Scripts -->
   <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-firestore-compat.js"></script>
   <script src="app.js"></script>
