@@ -24,6 +24,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Variáveis Globais ---
     let unsubscribeFromData = null;
     let alertTimer = null;
+    let pendingAssignments = []; // Adicionada de volta
 
     // ==========================================================
     // 1. DEFINIÇÃO DE TODAS AS FUNÇÕES
@@ -334,8 +335,9 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('settingsModal').classList.remove('visible');
         } catch (error) { console.error("Erro ao salvar:", error); showAlert('Erro ao salvar a distribuição.', 'error'); }
     }
-
-async function fetchHistory() {
+    
+    // FUNÇÃO QUE ESTAVA FALTANDO, ADICIONADA AQUI
+    async function fetchHistory() {
         const historyDateStart = document.getElementById('historyDateStart');
         const historyDateEnd = document.getElementById('historyDateEnd');
         const historyResults = document.getElementById('historyResults');
@@ -433,7 +435,7 @@ async function fetchHistory() {
         // Outras ações
         if (target.id === 'saveAssignmentsBtn') { saveAssignments(); }
         if (target.id === 'toggleMode') { document.documentElement.classList.toggle('dark'); }
-        if (target.id === 'fetchHistoryBtn') { fetchHistory(); }
+        if (target.id === 'fetchHistoryBtn') { fetchHistory(); } // <--- AGORA ESTÁ CORRETO
     });
 
     document.querySelectorAll('.modal-overlay').forEach(modal => {
