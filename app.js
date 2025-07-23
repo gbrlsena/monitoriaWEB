@@ -24,12 +24,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Variáveis Globais ---
     let unsubscribeFromData = null;
     let alertTimer = null;
-    let pendingAssignments = []; // Adicionada de volta
+    let pendingAssignments = [];
 
     // ==========================================================
     // 1. DEFINIÇÃO DE TODAS AS FUNÇÕES
     // ==========================================================
-
+    
     function showAlert(message, type = 'success') {
         const customAlert = document.getElementById('customAlert');
         const customAlertMessage = document.getElementById('customAlertMessage');
@@ -203,7 +203,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function showCardHistory(cardId) {
-        const cardHistoryModal = document.getElementById('cardHistoryModal');
         const titleEl = document.getElementById('cardHistoryTitle');
         const resultsEl = document.getElementById('cardHistoryResults');
         resultsEl.innerHTML = '<p>Carregando histórico...</p>';
@@ -336,7 +335,6 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) { console.error("Erro ao salvar:", error); showAlert('Erro ao salvar a distribuição.', 'error'); }
     }
     
-    // FUNÇÃO QUE ESTAVA FALTANDO, ADICIONADA AQUI
     async function fetchHistory() {
         const historyDateStart = document.getElementById('historyDateStart');
         const historyDateEnd = document.getElementById('historyDateEnd');
@@ -402,22 +400,27 @@ document.addEventListener('DOMContentLoaded', () => {
     kanbanDateSelect.addEventListener('change', updateView);
     monitorSelect.addEventListener('change', updateView);
     
+    // Listener dedicado para o botão de Histórico Geral
+    document.getElementById('historyBtn').addEventListener('click', () => {
+        historyModal.classList.add('visible');
+        const hoje = new Date();
+        const umaSemanaAtras = new Date();
+        umaSemanaAtras.setDate(hoje.getDate() - 7);
+        document.getElementById('historyDateStart').valueAsDate = umaSemanaAtras;
+        document.getElementById('historyDateEnd').valueAsDate = hoje;
+    });
+
+    // Listener geral para outros botões
     document.addEventListener('click', (e) => {
         const target = e.target.closest('button');
         if (!target) return;
+
         // Ações de abrir/fechar modais e abas
         if (target.id === 'settingsBtn') {
             settingsModal.classList.add('visible');
             renderDistributionMatrix();
             renderManagementList('monitors', 'monitorsList');
             renderManagementList('teams', 'teamsList');
-        }
-        if (target.id === 'historyBtn') {
-            historyModal.classList.add('visible');
-            const hoje = new Date(); const umaSemanaAtras = new Date();
-            umaSemanaAtras.setDate(hoje.getDate() - 7);
-            document.getElementById('historyDateStart').valueAsDate = umaSemanaAtras;
-            document.getElementById('historyDateEnd').valueAsDate = hoje;
         }
         if (target.id === 'settingsModalCloseBtn') { settingsModal.classList.remove('visible'); }
         if (target.id === 'historyModalCloseBtn') { historyModal.classList.remove('visible'); }
@@ -435,7 +438,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Outras ações
         if (target.id === 'saveAssignmentsBtn') { saveAssignments(); }
         if (target.id === 'toggleMode') { document.documentElement.classList.toggle('dark'); }
-        if (target.id === 'fetchHistoryBtn') { fetchHistory(); } // <--- AGORA ESTÁ CORRETO
+        if (target.id === 'fetchHistoryBtn') { fetchHistory(); }
     });
 
     document.querySelectorAll('.modal-overlay').forEach(modal => {
