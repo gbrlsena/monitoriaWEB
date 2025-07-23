@@ -127,19 +127,19 @@ document.addEventListener('DOMContentLoaded', () => {
             
             let actionsHTML = '';
             if (isDone) {
-                actionsHTML = `<button class="btn btn-reabrir" data-id="${card.id}">↩️ Reabrir</button><button class="btn btn-copiar" data-id="${card.id}" data-team="${card.time}">📋 Copiar</button>`;
+                actionsHTML = `<button class="btn btn-reabrir" data-id="${card.id}"><i class="fas fa-undo"></i> Reabrir</button><button class="btn btn-copiar" data-id="${card.id}" data-team="${card.time}"><i class="fas fa-copy"></i> Copiar</button>`;
             } else {
                 const concluirDisabled = !hasBeenActive ? 'disabled' : '';
                 const concluirTitle = !hasBeenActive ? 'title="Marque como Ativo para poder concluir"' : '';
-                actionsHTML = `<button class="btn btn-concluir" data-id="${card.id}" ${concluirDisabled} ${concluirTitle}>✅ Concluir</button><button class="btn btn-ajuda" data-id="${card.id}">🆘 Pedir Ajuda</button>`;
+                actionsHTML = `<button class="btn btn-concluir" data-id="${card.id}" ${concluirDisabled} ${concluirTitle}><i class="fas fa-check-circle"></i> Concluir</button><button class="btn btn-ajuda" data-id="${card.id}"><i class="fas fa-life-ring"></i> Ajuda</button>`;
                 if (isActive) {
-                    actionsHTML += `<button class="btn btn-pausar" data-id="${card.id}">⏸️ Pausar</button>`;
+                    actionsHTML += `<button class="btn btn-pausar" data-id="${card.id}"><i class="fas fa-pause-circle"></i> Pausar</button>`;
                 } else {
-                    actionsHTML += `<button class="btn btn-ativo" data-id="${card.id}">🔵 Ativo</button>`;
+                    actionsHTML += `<button class="btn btn-ativo" data-id="${card.id}"><i class="fas fa-play-circle"></i> Ativo</button>`;
                 }
             }
             el.innerHTML = `
-                <button class="card-history-btn" data-card-id="${card.id}" title="Ver Histórico">🕰️</button>
+                <button class="card-history-btn" data-card-id="${card.id}" title="Ver Histórico"><i class="fas fa-clock"></i></button>
                 <div class="card-content">
                     <h3>${card.time}</h3>
                     <p><strong>Status:</strong> ${statusState} <span class="status-time">${statusTime}</span></p>
@@ -224,27 +224,58 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    async function createMonitor() {
-        const newMonitorNameInput = document.getElementById('newMonitorName');
-        const name = newMonitorNameInput.value.trim();
-        if (!name) return showAlert('Insira um nome.', 'error');
+    async function renderManagementList(collectionName, listElementId) {
+        const listEl = document.getElementById(listElementId);
+        listEl.innerHTML = '<li>Carregando...</li>';
+        db.collection(collectionName).orderBy('name').onSnapshot(snapshot => {
+            if (snapshot.empty) {
+                listEl.innerHTML = '<li>Nenhum item cadastrado.</li>';
+                return;
+            }
+            listEl.innerHTML = '';
+            snapshot.docs.forEach(doc => {
+                const item = doc.data();
+                const li = document.createElement('li');
+                li.innerHTML = `
+                    <span>${item.name}</span>
+                    <div class="action-buttons">
+                        <button class="btn-edit" data-collection="${collectionName}" data-id="${doc.id}" data-name="${item.name}" title="Editar"><i class="fas fa-pencil-alt"></i></button>
+                        <button class="btn-delete" data-collection="${collectionName}" data-id="${doc.id}" title="Excluir"><i class="fas fa-trash-alt"></i></button>
+                    </div>
+                `;
+                listEl.appendChild(li);
+            });
+        });
+    }
+    
+    async function addItem(collectionName, inputElementId) {
+        const inputEl = document.getElementById(inputElementId);
+        const name = inputEl.value.trim();
+        if (!name) return showAlert('Por favor, insira um nome.', 'error');
         try {
-            await db.collection('monitors').add({ name: name });
-            showAlert(`Monitor "${name}" criado!`, 'success');
-            newMonitorNameInput.value = '';
-            populateSelect(monitorSelect, 'monitors', '-- Visão Geral --');
-        } catch (error) { showAlert('Erro ao criar monitor.', 'error'); }
+            await db.collection(collectionName).add({ name: name });
+            showAlert(`${collectionName === 'monitors' ? 'Monitor' : 'Time'} adicionado com sucesso!`, 'success');
+            inputEl.value = '';
+        } catch (error) { showAlert(`Erro ao adicionar item.`, 'error'); }
     }
 
-    async function createTeam() {
-        const newTeamNameInput = document.getElementById('newTeamName');
-        const name = newTeamNameInput.value.trim();
-        if (!name) return showAlert('Insira um nome.', 'error');
-        try {
-            await db.collection('teams').add({ name: name });
-            showAlert(`Time "${name}" criado!`, 'success');
-            newTeamNameInput.value = '';
-        } catch (error) { showAlert('Erro ao criar time.', 'error'); }
+    async function editItem(collectionName, id, oldName) {
+        const newName = prompt(`Editar nome:`, oldName);
+        if (newName && newName.trim() !== '' && newName !== oldName) {
+            try {
+                await db.collection(collectionName).doc(id).update({ name: newName });
+                showAlert('Nome atualizado! Aviso: Cards antigos não serão alterados.', 'success');
+            } catch (error) { showAlert('Erro ao atualizar.', 'error'); }
+        }
+    }
+
+    async function deleteItem(collectionName, id) {
+        if (confirm('Tem certeza que deseja excluir? Esta ação não pode ser desfeita e não afetará cards já existentes.')) {
+            try {
+                await db.collection(collectionName).doc(id).delete();
+                showAlert('Item excluído com sucesso!', 'success');
+            } catch (error) { showAlert('Erro ao excluir.', 'error'); }
+        }
     }
 
     async function renderDistributionMatrix() {
@@ -290,12 +321,10 @@ document.addEventListener('DOMContentLoaded', () => {
         checkedBoxes.forEach(box => {
             const newCardRef = db.collection('cards').doc();
             batch.set(newCardRef, {
-                monitor: box.dataset.monitor,
-                time: box.dataset.team,
+                monitor: box.dataset.monitor, time: box.dataset.team,
                 data: firebase.firestore.Timestamp.fromDate(new Date(distDate + 'T12:00:00')),
                 currentStatus: { state: "pendente", timestamp: now },
-                precisaAjuda: false,
-                foiAtivado: false,
+                precisaAjuda: false, foiAtivado: false,
                 historico: [{ timestamp: now, mensagem: "Card criado" }]
             });
         });
@@ -306,7 +335,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) { console.error("Erro ao salvar:", error); showAlert('Erro ao salvar a distribuição.', 'error'); }
     }
 
-    async function fetchHistory() {
+async function fetchHistory() {
         const historyDateStart = document.getElementById('historyDateStart');
         const historyDateEnd = document.getElementById('historyDateEnd');
         const historyResults = document.getElementById('historyResults');
@@ -374,28 +403,37 @@ document.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('click', (e) => {
         const target = e.target.closest('button');
         if (!target) return;
-        switch (target.id) {
-            case 'settingsBtn':
-                settingsModal.classList.add('visible');
-                renderDistributionMatrix();
-                break;
-            case 'historyBtn':
-                historyModal.classList.add('visible');
-                const hoje = new Date();
-                const umaSemanaAtras = new Date();
-                umaSemanaAtras.setDate(hoje.getDate() - 7);
-                document.getElementById('historyDateStart').valueAsDate = umaSemanaAtras;
-                document.getElementById('historyDateEnd').valueAsDate = hoje;
-                break;
-            case 'settingsModalCloseBtn': settingsModal.classList.remove('visible'); break;
-            case 'historyModalCloseBtn': historyModal.classList.remove('visible'); break;
-            case 'cardHistoryModalCloseBtn': cardHistoryModal.classList.remove('visible'); break;
-            case 'toggleMode': document.documentElement.classList.toggle('dark'); break;
-            case 'addMonitorBtn': createMonitor(); break;
-            case 'addTeamBtn': createTeam(); break;
-            case 'saveAssignmentsBtn': saveAssignments(); break;
-            case 'fetchHistoryBtn': fetchHistory(); break;
+        // Ações de abrir/fechar modais e abas
+        if (target.id === 'settingsBtn') {
+            settingsModal.classList.add('visible');
+            renderDistributionMatrix();
+            renderManagementList('monitors', 'monitorsList');
+            renderManagementList('teams', 'teamsList');
         }
+        if (target.id === 'historyBtn') {
+            historyModal.classList.add('visible');
+            const hoje = new Date(); const umaSemanaAtras = new Date();
+            umaSemanaAtras.setDate(hoje.getDate() - 7);
+            document.getElementById('historyDateStart').valueAsDate = umaSemanaAtras;
+            document.getElementById('historyDateEnd').valueAsDate = hoje;
+        }
+        if (target.id === 'settingsModalCloseBtn') { settingsModal.classList.remove('visible'); }
+        if (target.id === 'historyModalCloseBtn') { historyModal.classList.remove('visible'); }
+        if (target.id === 'cardHistoryModalCloseBtn') { cardHistoryModal.classList.remove('visible'); }
+        if (target.matches('.nav-btn')) {
+            settingsModal.querySelectorAll('.nav-btn, .tab-content').forEach(el => el.classList.remove('active'));
+            target.classList.add('active');
+            document.getElementById(target.dataset.tab).classList.add('active');
+        }
+        // Ações de Gestão (CRUD)
+        if (target.id === 'addMonitorBtn') { addItem('monitors', 'newMonitorName'); }
+        if (target.id === 'addTeamBtn') { addItem('teams', 'newTeamName'); }
+        if (target.matches('.btn-edit')) { editItem(target.dataset.collection, target.dataset.id, target.dataset.name); }
+        if (target.matches('.btn-delete')) { deleteItem(target.dataset.collection, target.dataset.id); }
+        // Outras ações
+        if (target.id === 'saveAssignmentsBtn') { saveAssignments(); }
+        if (target.id === 'toggleMode') { document.documentElement.classList.toggle('dark'); }
+        if (target.id === 'fetchHistoryBtn') { fetchHistory(); }
     });
 
     document.querySelectorAll('.modal-overlay').forEach(modal => {
@@ -413,4 +451,4 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     initializeApp();
-});
+});```
