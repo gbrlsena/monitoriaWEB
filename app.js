@@ -453,4 +453,4 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     initializeApp();
-});```
+});
