@@ -2,14 +2,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Configuração do Firebase ---
     const firebaseConfig = {
-      apiKey: "AIzaSyArGe8B4_ptptY6EU1B5OWSVKEj_1mUnus",
-      authDomain: "monitoriasite-eb2ad.firebaseapp.com",
-      projectId: "monitoriasite-eb2ad",
-      storageBucket: "monitoriasite-eb2ad.appspot.com",
-      messagingSenderId: "992773117560",
-      appId: "1:992773117560:web:d10679616fd64fe66c7f8d",
-      measurementId: "G-80845BMJMZ"
+        apiKey: "AIzaSyArGe8B4_ptptY6EU1B5OWSVKEj_1mUnus",
+        authDomain: "monitoriasite-eb2ad.firebaseapp.com",
+        projectId: "monitoriasite-eb2ad",
+        storageBucket: "monitoriasite-eb2ad.appspot.com",
+        messagingSenderId: "992773117560",
+        appId: "1:992773117560:web:d10679616fd64fe66c7f8d",
+        measurementId: "G-80845BMJMZ"
     };
+
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
@@ -20,7 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const settingsModal = document.getElementById('settingsModal');
     const historyModal = document.getElementById('historyModal');
     const cardHistoryModal = document.getElementById('cardHistoryModal');
-    
+
     // --- Variáveis Globais ---
     let unsubscribeFromData = null;
     let alertTimer = null;
@@ -29,7 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // ==========================================================
     // 1. DEFINIÇÃO DE TODAS AS FUNÇÕES
     // ==========================================================
-    
+
     function showAlert(message, type = 'success') {
         const customAlert = document.getElementById('customAlert');
         const customAlertMessage = document.getElementById('customAlertMessage');
@@ -202,27 +203,40 @@ document.addEventListener('DOMContentLoaded', () => {
         navigator.clipboard.writeText(textToCopy).then(() => showAlert('Texto copiado!', 'success'), () => showAlert('Falha ao copiar.', 'error'));
     }
 
-    async function showCardHistory(cardId) {
-        const titleEl = document.getElementById('cardHistoryTitle');
-        const resultsEl = document.getElementById('cardHistoryResults');
-        resultsEl.innerHTML = '<p>Carregando histórico...</p>';
-        cardHistoryModal.classList.add('visible');
-        try {
-            const doc = await db.collection('cards').doc(cardId).get();
-            if (!doc.exists) { resultsEl.innerHTML = '<p>Card não encontrado.</p>'; return; }
-            const card = doc.data();
-            titleEl.textContent = `Histórico - ${card.time}`;
-            let logsHTML = '';
-            if (card.historico && card.historico.length > 0) {
-                card.historico.sort((a, b) => a.timestamp.toDate() - b.timestamp.toDate());
-                card.historico.forEach(log => { logsHTML += `<li><span class="log-time">${formatarDataHoraBR(log.timestamp)}:</span> ${log.mensagem}</li>`; });
-            } else { logsHTML += '<li>Nenhum histórico detalhado.</li>'; }
-            resultsEl.innerHTML = `<ul class="log-list">${logsHTML}</ul>`;
-        } catch (error) {
-            console.error("Erro ao buscar histórico do card:", error);
-            resultsEl.innerHTML = '<p>Ocorreu um erro ao buscar o histórico.</p>';
+async function showCardHistory(cardId) {
+    const cardHistoryModal = document.getElementById('cardHistoryModal');
+    const titleEl = document.getElementById('cardHistoryTitle');
+    const resultsEl = document.getElementById('cardHistoryResults');
+    resultsEl.innerHTML = '<p class="placeholder-text">Carregando...</p>';
+    cardHistoryModal.classList.add('visible');
+    try {
+        const doc = await db.collection('cards').doc(cardId).get();
+        if (!doc.exists) {
+            resultsEl.innerHTML = '<p>Card não encontrado.</p>';
+            return;
         }
+        const card = doc.data();
+        titleEl.textContent = `ㅤHistórico - ${card.time}`;
+
+        let logsHTML = '';
+        if (card.historico && card.historico.length > 0) {
+            card.historico.sort((a, b) => a.timestamp.toDate() - b.timestamp.toDate());
+            card.historico.forEach(log => {
+                // Usa a mesma estrutura de spans do histórico geral
+                logsHTML += `<li><span class="log-time">${formatarDataHoraBR(log.timestamp)}</span><span>${log.mensagem}</span></li>`;
+            });
+        } else {
+            logsHTML = '<li>Nenhum histórico detalhado.</li>';
+        }
+
+        // CORREÇÃO: Envolve o resultado na tag <ul> com a classe .log-list
+        resultsEl.innerHTML = `<ul class="log-list">${logsHTML}</ul>`;
+
+    } catch (error) {
+        console.error("Erro ao buscar histórico do card:", error);
+        resultsEl.innerHTML = '<p>Ocorreu um erro ao buscar o histórico.</p>';
     }
+}
 
     async function renderManagementList(collectionName, listElementId) {
         const listEl = document.getElementById(listElementId);
@@ -354,13 +368,16 @@ document.addEventListener('DOMContentLoaded', () => {
             historyResults.innerHTML = '';
             snapshot.docs.forEach(doc => {
                 const card = doc.data();
-                const cardEl = document.createElement('div'); cardEl.className = 'history-item';
+                const cardEl = document.createElement('div');
+                cardEl.className = 'history-item';
                 let logsHTML = '';
                 if (card.historico && card.historico.length > 0) {
                     card.historico.sort((a, b) => a.timestamp.toDate() - b.timestamp.toDate());
-                    card.historico.forEach(log => { logsHTML += `<li><span class="log-time">${formatarDataHoraBR(log.timestamp)}:</span> ${log.mensagem}</li>`; });
-                } else { logsHTML += '<li>Nenhum log detalhado.</li>'; }
-                cardEl.innerHTML = `<div class="history-item-header"><span>${card.time} (${card.monitor}) - </span><span>${formatarDataBR(card.data)}</span></div><ul class="log-list">${logsHTML}</ul>`;
+                    card.historico.forEach(log => {
+                        logsHTML += `<li><span class="log-time">${formatarDataHoraBR(log.timestamp)}</span><span>${log.mensagem}</span></li>`;
+                    });
+                } else { logsHTML = '<li>Nenhum log detalhado.</li>'; }
+                cardEl.innerHTML = `<div class="history-item-header">${card.time} (${card.monitor}) - ${formatarDataBR(card.data)}</div><ul class="log-list">${logsHTML}</ul>`;
                 historyResults.appendChild(cardEl);
             });
         } catch (error) {
@@ -397,20 +414,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // ==========================================================
     // 2. CONFIGURAÇÃO DOS EVENT LISTENERS
     // ==========================================================
+
+
     kanbanDateSelect.addEventListener('change', updateView);
     monitorSelect.addEventListener('change', updateView);
-    
-    // Listener dedicado para o botão de Histórico Geral
-    document.getElementById('historyBtn').addEventListener('click', () => {
-        historyModal.classList.add('visible');
-        const hoje = new Date();
-        const umaSemanaAtras = new Date();
-        umaSemanaAtras.setDate(hoje.getDate() - 7);
-        document.getElementById('historyDateStart').valueAsDate = umaSemanaAtras;
-        document.getElementById('historyDateEnd').valueAsDate = hoje;
-    });
 
-    // Listener geral para outros botões
     document.addEventListener('click', (e) => {
         const target = e.target.closest('button');
         if (!target) return;
@@ -422,32 +430,48 @@ document.addEventListener('DOMContentLoaded', () => {
             renderManagementList('monitors', 'monitorsList');
             renderManagementList('teams', 'teamsList');
         }
-        if (target.id === 'settingsModalCloseBtn') { settingsModal.classList.remove('visible'); }
-        if (target.id === 'historyModalCloseBtn') { historyModal.classList.remove('visible'); }
-        if (target.id === 'cardHistoryModalCloseBtn') { cardHistoryModal.classList.remove('visible'); }
+
+        if (target.id === 'historyBtn') {
+            historyModal.classList.add('visible');
+            const hoje = new Date();
+            const umaSemanaAtras = new Date();
+            umaSemanaAtras.setDate(hoje.getDate() - 7);
+            document.getElementById('historyDateStart').valueAsDate = umaSemanaAtras;
+            document.getElementById('historyDateEnd').valueAsDate = hoje;
+        }
+
+        if (target.id === 'settingsModalCloseBtn') settingsModal.classList.remove('visible');
+        if (target.id === 'historyModalCloseBtn') historyModal.classList.remove('visible');
+        if (target.id === 'cardHistoryModalCloseBtn') cardHistoryModal.classList.remove('visible');
+
         if (target.matches('.nav-btn')) {
             settingsModal.querySelectorAll('.nav-btn, .tab-content').forEach(el => el.classList.remove('active'));
             target.classList.add('active');
             document.getElementById(target.dataset.tab).classList.add('active');
         }
+
         // Ações de Gestão (CRUD)
-        if (target.id === 'addMonitorBtn') { addItem('monitors', 'newMonitorName'); }
-        if (target.id === 'addTeamBtn') { addItem('teams', 'newTeamName'); }
-        if (target.matches('.btn-edit')) { editItem(target.dataset.collection, target.dataset.id, target.dataset.name); }
-        if (target.matches('.btn-delete')) { deleteItem(target.dataset.collection, target.dataset.id); }
+        if (target.id === 'addMonitorBtn') addItem('monitors', 'newMonitorName');
+        if (target.id === 'addTeamBtn') addItem('teams', 'newTeamName');
+        if (target.matches('.btn-edit')) editItem(target.dataset.collection, target.dataset.id, target.dataset.name);
+        if (target.matches('.btn-delete')) deleteItem(target.dataset.collection, target.dataset.id);
+
         // Outras ações
-        if (target.id === 'saveAssignmentsBtn') { saveAssignments(); }
-        if (target.id === 'toggleMode') { document.documentElement.classList.toggle('dark'); }
-        if (target.id === 'fetchHistoryBtn') { fetchHistory(); }
+        if (target.id === 'saveAssignmentsBtn') saveAssignments();
+        if (target.id === 'toggleMode') document.documentElement.classList.toggle('dark');
+        if (target.id === 'fetchHistoryBtn') fetchHistory();
     });
 
     document.querySelectorAll('.modal-overlay').forEach(modal => {
-        modal.addEventListener('click', (e) => { if (e.target === modal) modal.classList.remove('visible'); });
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) modal.classList.remove('visible');
+        });
     });
-    
+
     // ==========================================================
     // 3. INICIALIZAÇÃO DA APLICAÇÃO
     // ==========================================================
+
     async function initializeApp() {
         kanbanDateSelect.valueAsDate = new Date();
         document.getElementById('distDate').valueAsDate = new Date();
