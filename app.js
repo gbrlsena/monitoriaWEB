@@ -216,7 +216,7 @@ async function showCardHistory(cardId) {
             return;
         }
         const card = doc.data();
-        titleEl.textContent = `ㅤHistórico - ${card.time}`;
+        titleEl.textContent = `Histórico - ${card.time}`;
 
         let logsHTML = '';
         if (card.historico && card.historico.length > 0) {
@@ -268,7 +268,7 @@ async function showCardHistory(cardId) {
         if (!name) return showAlert('Por favor, insira um nome.', 'error');
         try {
             await db.collection(collectionName).add({ name: name });
-            showAlert(`${collectionName === 'monitors' ? 'Monitor' : 'Time'} adicionado com sucesso!`, 'success');
+          //   showAlert(`${collectionName === 'monitors' ? 'Monitor' : 'Time'} adicionado com sucesso!`, 'success');
             inputEl.value = '';
         } catch (error) { showAlert(`Erro ao adicionar item.`, 'error'); }
     }
@@ -278,7 +278,7 @@ async function showCardHistory(cardId) {
         if (newName && newName.trim() !== '' && newName !== oldName) {
             try {
                 await db.collection(collectionName).doc(id).update({ name: newName });
-                showAlert('Nome atualizado! Aviso: Cards antigos não serão alterados.', 'success');
+           //      showAlert('Nome atualizado! Aviso: Cards antigos não serão alterados.', 'success');
             } catch (error) { showAlert('Erro ao atualizar.', 'error'); }
         }
     }
@@ -287,7 +287,7 @@ async function showCardHistory(cardId) {
         if (confirm('Tem certeza que deseja excluir? Esta ação não pode ser desfeita e não afetará cards já existentes.')) {
             try {
                 await db.collection(collectionName).doc(id).delete();
-                showAlert('Item excluído com sucesso!', 'success');
+              //   showAlert('Item excluído com sucesso!', 'success');
             } catch (error) { showAlert('Erro ao excluir.', 'error'); }
         }
     }
