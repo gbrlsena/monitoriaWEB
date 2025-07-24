@@ -174,7 +174,24 @@ html.dark .setting-section { border-top-color: var(--border-dark); }
     html.dark .log-list li { border-bottom-color: #444; }
     .log-list li:last-child { border-bottom: none; }
     .log-list .log-time { color: #888; font-size: 0.85rem; white-space: nowrap; flex-shrink: 0; }
-    .log-list span:last-child { text-align: right;  padding-right: 1rem;} }
+    .log-list span:last-child { text-align: right;  padding-right: 1rem;}
+    
+/* --- Alerta Customizado --- */
+
+.custom-alert { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(100px); display: flex; align-items: center; gap: 1rem;
+    padding: 1rem 1.5rem; border-radius: 12px; color: white; font-weight: 500; font-size: 1rem; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.15), 0 8px 10px -6px rgba(0,0,0,0.15);
+    z-index: 2000; opacity: 0; pointer-events: none;
+    transition: transform 0.5s cubic-bezier(0.215, 0.610, 0.355, 1), opacity 0.4s ease-out; }
+
+.custom-alert.show { opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: auto; transition: transform 0.5s cubic-bezier(0.215, 0.610, 0.355, 1), opacity 0.2s ease-in; }
+
+.custom-alert.success { background-color: var(--done-color); }
+
+.custom-alert.error { background-color: var(--delete-color); }
+
+.custom-alert i { font-size: 1.5rem;}
+.custom-alert p { margin: 0; padding: 0; }
+
   </style>
 </head>
 <body>
