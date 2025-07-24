@@ -33,6 +33,7 @@
     body { margin: 0; background: var(--background-light); color: var(--text-light); transition: background 0.3s, color 0.3s; }
     html.dark body { background: var(--background-dark); color: var(--text-dark); }
     
+    /* --- Header --- */
     header { padding: 0.75rem 2rem; background: var(--primary-color); color: white; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
     .header-left h1 { margin: 0; font-size: 1.5rem; }
     .header-right { display: flex; align-items: center; gap: 1.5rem; }
@@ -42,10 +43,12 @@
     header select, header input[type="date"] { font-size: 1rem; padding: 0.5rem; border-radius: 6px; border: 1px solid transparent; background-color: rgba(255,255,255,0.9); color: #333; }
     .icon-btn { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: white; padding: 5px; line-height: 1; transition: color 0.2s; }
     .icon-btn:hover { color: rgba(255,255,255,0.8); }
+
     main { padding: 2rem; }
     .placeholder-text { text-align: center; color: #888; grid-column: 1 / -1; font-size: 1.2rem; }
     .kanban-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; }
     
+    /* --- Dashboard --- */
     .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; max-width: 1400px; margin: 0 auto; }
     .progress-container { grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; margin-bottom: 2rem; }
     .progress-circle { width: 200px; height: 200px; border-radius: 50%; display: grid; place-items: center; background: conic-gradient(var(--done-color) var(--progress, 0), var(--border-light) var(--progress, 0)); transition: --progress 1s ease-out; }
@@ -68,11 +71,12 @@
     .dashboard-panel .team-name { color: #475569; }
     html.dark .dashboard-panel .team-name { color: #cbd5e1; }
 
-    .card { background: var(--card-light); border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.07), 0 2px 4px -2px rgba(0,0,0,0.07); display: flex; flex-direction: column; border-top: 4px solid var(--border-light); transition: transform 0.2s ease, box-shadow 0.2s ease; position: relative; }
+    /* --- Cards --- */
+    .card { background: var(--card-light); border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.07), 0 2px 4px -2px rgba(0,0,0,0.07); display: flex; flex-direction: column; border-top: 4px solid var(--border-light); transition: transform 0.2s ease, box-shadow 0.2s ease; position: relative; opacity: 0.9;}
     .card:hover { transform: translateY(-5px); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.07), 0 4px 6px -4px rgba(0,0,0,0.07); }
     html.dark .card { background: var(--card-dark); border: 1px solid var(--border-dark); box-shadow: none; }
     .card.active { border-top-color: var(--active-color); }
-    .card.done { border-top-color: var(--done-color); opacity: 0.9; }
+    .card.done { border-top-color: var(--done-color); opacity: 0.5; }
     .card-history-btn { position: absolute; top: 8px; right: 8px; background: none; border: none; font-size: 1.2rem; cursor: pointer; color: #ccc; padding: 5px; line-height: 1; transition: color 0.2s; }
     .card-history-btn:hover { color: var(--primary-color); }
     .card-content { padding: 1.25rem; flex-grow: 1; min-height: 80px; }
@@ -96,27 +100,42 @@
     .btn-reabrir { background-color: var(--reopen-color); color: white; }
     .btn-copiar { background-color: var(--copy-color); color: white; }
 
-    .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: rgba(0, 0, 0, 0.6); z-index: 1000; display: flex; justify-content: center; align-items: center; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
-    .modal-overlay.visible { opacity: 1; pointer-events: auto; }
-    .modal-content { background: var(--card-light); border-radius: 8px; max-width: 900px; width: 90%; height: 80vh; display: flex; box-shadow: 0 5px 15px rgba(0,0,0,0.3); transform: scale(0.95); transition: transform 0.3s ease; overflow: hidden; }
-    html.dark .modal-content { background: var(--card-dark); }
-    .modal-overlay.visible .modal-content { transform: scale(1); }
-    .modal-sidebar { flex: 0 0 200px; background: #f8fafc; border-right: 1px solid var(--border-light); padding: 1rem; }
-    html.dark .modal-sidebar { background: #1a2233; border-right: 1px solid var(--border-dark); }
-    .modal-sidebar .nav-btn { display: block; width: 100%; text-align: left; background: none; border: none; padding: 0.75rem; font-size: 1rem; border-radius: 6px; cursor: pointer; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-light); }
-    html.dark .modal-sidebar .nav-btn { color: var(--text-dark); }
-    .modal-sidebar .nav-btn.active { background: var(--primary-color); color: white; }
-    .modal-sidebar .nav-btn:not(.active):hover { background: #e2e8f0; }
-    html.dark .modal-sidebar .nav-btn:not(.active):hover { background: #293548; }
-    .modal-main-content { flex-grow: 1; padding: 2rem; overflow-y: auto; position: relative; }
-    .modal-close { position: absolute; top: 1.5rem; right: 1.5rem; font-size: 2rem; font-weight: bold; cursor: pointer; color: #aaa; border: none; background: none; z-index: 10; }
-    .tab-content { display: none; height: 100%; }
-    .tab-content.active { display: block; }
-    .setting-section { margin-top: 1.5rem; border-top: 1px solid var(--border-light); padding-top: 1.5rem; }
-    .setting-section:first-of-type { margin-top: 0; padding-top: 0; border-top: none; }
-    .setting-section h3 { margin-top: 0; }
-    
-    .management-list { list-style: none; padding: 0; margin-top: 1rem; }
+/* --- Estrutura Genérica do Modal --- */
+.modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); z-index: 1000; display: flex; justify-content: center; align-items: center; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
+.modal-overlay.visible { opacity: 1; pointer-events: auto; }
+.modal-content { background: var(--card-light); border-radius: 12px; max-width: 900px; width: 90%; max-height: 85vh; display: flex; flex-direction: column; box-shadow: 0 10px 25px rgba(0,0,0,0.2); transform: scale(0.95); transition: transform 0.3s ease; overflow: hidden; }
+html.dark .modal-content { background: var(--card-dark); }
+.modal-overlay.visible .modal-content { transform: scale(1); }
+
+.modal-header { display: flex; justify-content: space-between; align-items: center; padding: 1.5rem 2rem; border-bottom: 1px solid var(--border-light); flex-shrink: 0; }
+html.dark .modal-header { border-bottom-color: var(--border-dark); }
+.modal-header h2 { margin: 0; font-size: 1.25rem; }
+.modal-close { font-size: 1.5rem; cursor: pointer; color: #aaa; border: none; background: none; }
+
+.modal-body { padding: 2rem; overflow-y: auto; flex-grow: 1; }
+
+/* --- Modal de Configurações com Abas --- */
+#settingsModal .modal-content { flex-direction: row; padding: 0; } /* Remove padding do contêiner geral */
+
+.modal-sidebar { flex: 0 0 200px; background: #f8fafc; border-right: 1px solid var(--border-light); padding: 1rem; overflow-y: auto; }
+html.dark .modal-sidebar { background: #1a2233; border-right-color: var(--border-dark); }
+.modal-sidebar .nav-btn { display: block; width: 100%; text-align: left; background: none; border: none; padding: 0.75rem; font-size: 1rem; border-radius: 6px; cursor: pointer; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-light); }
+html.dark .modal-sidebar .nav-btn { color: var(--text-dark); }
+.modal-sidebar .nav-btn.active { background: var(--primary-color); color: white; }
+.modal-sidebar .nav-btn:not(.active):hover { background: #e2e8f0; }
+html.dark .modal-sidebar .nav-btn:not(.active):hover { background: #293548; }
+
+.modal-main-content { flex-grow: 1; position: relative; display: flex; flex-direction: column; overflow-y: auto;}
+.modal-main-content .modal-close { position: absolute; top: 1rem; right: 1.5rem; z-index: 10; }
+
+.tab-content { display: none; flex-direction: column; height: 100%; }
+.tab-content.active { display: flex; }
+.tab-content h2 { padding: 1.5rem 2rem 0 2rem; margin: 0 0 1rem 0; flex-shrink: 0; }
+.tab-content p { padding: 0 2rem; flex-shrink: 0; margin-bottom: 1rem; }
+
+.setting-section { padding: 1.5rem 2rem; border-top: 1px solid var(--border-light); }
+
+   .management-list { list-style: none; padding: 0; margin-top: 1rem; }
     .management-list li { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; border-radius: 6px; }
     .management-list li:nth-child(odd) { background: #f8fafc; }
     html.dark .management-list li:nth-child(odd) { background: #1a2233; }
@@ -125,29 +144,9 @@
     html.dark .management-list .action-buttons button:hover { color: var(--text-dark); }
     .management-list .action-buttons .btn-delete:hover { color: var(--delete-color); }
     
-    #historyModal .modal-content, #cardHistoryModal .modal-content { display: flex; flex-direction: column; height: auto; max-height: 80vh; padding: 0; }
-    .history-filter { padding: 2rem 2rem 1.5rem 2rem; display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; border-bottom: 1px solid var(--border-light); flex-shrink: 0; }
-    html.dark .history-filter { border-bottom-color: var(--border-dark); }
-    .history-filter .control-group { display: flex; align-items: center; gap: 0.5rem; }
-    .history-filter label { font-weight: 500; }
-    .history-filter input { padding: 0.5rem; border-radius: 6px; border: 1px solid var(--border-light); font-size: 0.9rem; }
-    html.dark .history-filter input { background: #333; color: white; border-color: var(--border-dark); }
-    .history-filter button { padding: 0.6rem 1rem; margin-left: auto; }
-    #historyResults { overflow-y: auto; padding: 1rem 2rem 2rem 2rem; }
-    .history-item { padding-bottom: 1rem; margin-bottom: 1rem; border-bottom: 1px solid var(--border-light); }
-    html.dark .history-item { border-bottom-color: var(--border-dark); }
-    .history-item:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
-    .history-item-header { font-weight: 600; font-size: 1.1rem; margin-bottom: 0.75rem; }
-    .log-list { list-style: none; padding-left: 1rem; margin: 0; }
-    .log-list li { padding: 0.4rem 0; font-size: 0.9rem; display: flex; justify-content: space-between; align-items: baseline; gap: 1.5rem; border-bottom: 1px dashed #eee; }
-    html.dark .log-list li { border-bottom-color: #444; }
-    .log-list li:last-child { border-bottom: none; }
-    .log-list .log-time { color: #888; font-size: 0.85rem; white-space: nowrap; flex-shrink: 0; }
-    .log-list span:last-child { text-align: right; }
-    html.dark .log-list .log-time { color: #a0a0a0; }
-    
-    /* --- Distribuição por Matriz (CORRIGIDO) --- */
-    #tab-distribute .setting-section { display: flex; flex-direction: column; height: calc(100% - 4rem); /* Altura total menos o padding */ }
+html.dark .setting-section { border-top-color: var(--border-dark); }
+   /* --- Distribuição por Matriz (CORRIGIDO) --- */
+    #tab-distribute .setting-section { overflow-y: auto; flex-direction: column; height: calc(100% - 4rem); /* Altura total menos o padding */ }
     .distribution-controls { display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem; flex-shrink: 0; }
     .distribution-controls label { font-weight: 500; }
     .distribution-matrix { flex-grow: 1; overflow-y: auto; border: 1px solid var(--border-light); border-radius: 8px; }
@@ -163,12 +162,19 @@
     .distribution-matrix input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; }
     #distribution-summary { margin-top: 1rem; font-weight: 500; padding: 0.5rem; flex-shrink: 0; }
     #saveAssignmentsBtn { margin-top: auto; padding: 0.8rem; font-size: 1rem; }
-    
-    .custom-alert { position: fixed; bottom: 20px; left: 50%; padding: 12px 20px; border-radius: 8px; color: white; font-weight: bold; box-shadow: 0 4px 10px rgba(0,0,0,0.2); z-index: 2000; opacity: 0; transition: opacity 0.3s ease, transform 0.4s ease; transform: translateX(-50%) translateY(30px); pointer-events: none; }
-    .custom-alert.show { opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: auto; }
-    .custom-alert.success { background-color: var(--done-color); }
-    .custom-alert.error { background-color: #dc3545; }
-    .custom-alert p { margin: 0; padding: 0; }
+
+    /* --- Histórico --- */
+    .history-filter { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; margin-bottom: 1.5rem; padding: 1rem;}
+    .history-item { padding-bottom: 1rem; margin-bottom: 1rem; border-bottom: 1px solid var(--border-light); }
+    html.dark .history-item { border-bottom-color: var(--border-dark); }
+    .history-item:last-child { border-bottom: none; }
+    .history-item-header { font-weight: 600; font-size: 1.1rem; margin-bottom: 0.75rem; padding-left: 15px;}
+    .log-list { list-style: none; padding-left: 1rem; margin: 0; }
+    .log-list li { padding: 0.4rem 0; font-size: 0.9rem; display: flex; justify-content: space-between; align-items: baseline; gap: 1.5rem; border-bottom: 1px dashed #eee; }
+    html.dark .log-list li { border-bottom-color: #444; }
+    .log-list li:last-child { border-bottom: none; }
+    .log-list .log-time { color: #888; font-size: 0.85rem; white-space: nowrap; flex-shrink: 0; }
+    .log-list span:last-child { text-align: right;  padding-right: 1rem;} }
   </style>
 </head>
 <body>
@@ -186,7 +192,7 @@
   
   <main id="boardContainer"></main>
 
-  <!-- Modal de Configurações com Abas -->
+ <!-- Modal de Configurações com Abas -->
   <div id="settingsModal" class="modal-overlay">
     <div class="modal-content">
       <div class="modal-sidebar">
@@ -227,27 +233,34 @@
     </div>
   </div>
 
-  <!-- Outros Modais -->
+  <!-- Modal de Histórico GERAL -->
   <div id="historyModal" class="modal-overlay">
     <div class="modal-content">
-      <button class="modal-close" id="historyModalCloseBtn">×</button>
-      <div class="modal-body">
+      <div class="modal-header">
         <h2>Histórico Geral</h2>
+        <button class="modal-close" id="historyModalCloseBtn">×</button>
+      </div>
+      <div class="modal-body">
         <div class="history-filter">
             <div class="control-group"><label for="historyDateStart">De:</label><input type="date" id="historyDateStart"></div>
             <div class="control-group"><label for="historyDateEnd">Até:</label><input type="date" id="historyDateEnd"></div>
             <button id="fetchHistoryBtn" class="btn"><i class="fas fa-search"></i> Buscar</button>
         </div>
-        <div id="historyResults"></div>
+        <div id="historyResults">
+            <p class="placeholder-text">Selecione um período e clique em buscar.</p>
+        </div>
       </div>
     </div>
   </div>
 
+  <!-- Modal de Histórico INDIVIDUAL do Card -->
   <div id="cardHistoryModal" class="modal-overlay">
       <div class="modal-content">
-          <button class="modal-close" id="cardHistoryModalCloseBtn">×</button>
-          <div class="modal-body">
+          <div class="modal-header">
               <h2 id="cardHistoryTitle">Histórico do Card</h2>
+              <button class="modal-close" id="cardHistoryModalCloseBtn">×</button>
+          </div>
+          <div class="modal-body">
               <div id="cardHistoryResults"></div>
           </div>
       </div>
@@ -255,6 +268,7 @@
 
   <div id="customAlert" class="custom-alert"><p id="customAlertMessage"></p></div>
 
+  <!-- Scripts -->
   <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-firestore-compat.js"></script>
   <script src="app.js"></script>
