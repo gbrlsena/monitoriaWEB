@@ -42,7 +42,6 @@
     .header-action-buttons { display: flex; align-items: center; gap: 1rem; }
     header select, header input[type="date"] { font-size: 1rem; padding: 0.5rem; border-radius: 6px; border: 1px solid transparent; background-color: rgba(255,255,255,0.9); color: #333; }
     .icon-btn { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: white; padding: 5px; line-height: 1; transition: color 0.2s; }
-    .icon-btn:hover { color: rgba(255,255,255,0.8); }
 
     main { padding: 2rem; }
     .placeholder-text { text-align: center; color: #888; grid-column: 1 / -1; font-size: 1.2rem; }
@@ -62,10 +61,10 @@
     html.dark .dashboard-panel { background: var(--card-dark); box-shadow: none; border: 1px solid var(--border-dark); }
     .dashboard-panel h3 { margin-top: 0; border-bottom: 1px solid var(--border-light); padding-bottom: 0.75rem; font-size: 1.1rem; }
     html.dark .dashboard-panel h3 { border-bottom-color: var(--border-dark); }
-    .dashboard-panel ul { list-style: none; padding: 0; margin: 0; }
-    .dashboard-panel li { padding: 0.75rem 0.25rem; border-bottom: 1px solid var(--border-light); }
-    html.dark .dashboard-panel li { border-bottom-color: var(--border-dark); }
-    .dashboard-panel li:last-child { border-bottom: none; }
+    .dashboard-panel ul, .management-list { list-style: none; padding: 0; margin: 0; }
+    .dashboard-panel li, .management-list li { padding: 0.75rem 0.25rem; border-bottom: 1px solid var(--border-light); }
+    html.dark .dashboard-panel li, html.dark .management-list li { border-bottom-color: var(--border-dark); }
+    .dashboard-panel li:last-child, .management-list li:last-child { border-bottom: none; }
     .dashboard-panel .monitor-name { font-weight: 600; }
     .dashboard-panel .team-name { color: #475569; }
     html.dark .dashboard-panel .team-name { color: #cbd5e1; }
@@ -75,10 +74,13 @@
     html.dark .card.pending-transfer { background-color: #2b233a; }
     .card.active { border-top-color: var(--active-color); }
     .card.done { border-top-color: var(--done-color); opacity: 0.9; }
-    .card-history-btn { position: absolute; top: 8px; right: 8px; background: none; border: none; font-size: 1.2rem; cursor: pointer; color: #ccc; padding: 5px; line-height: 1; transition: color 0.2s; }
+    .card-header-icons { position: absolute; top: 8px; right: 8px; display: flex; gap: 0.5rem; }
+    .card-header-icons button { background: none; border: none; font-size: 1.2rem; cursor: pointer; color: #ccc; padding: 5px; line-height: 1; transition: color 0.2s; }
     .card-history-btn:hover { color: var(--primary-color); }
+    .card-info-btn { color: var(--active-color); }
+    .card-info-btn:hover { filter: brightness(1.2); }
     .card-content { padding: 1.25rem; flex-grow: 1; min-height: 80px; }
-    .card-content h3 { margin-top: 0; font-size: 1.25rem; padding-right: 30px; }
+    .card-content h3 { margin-top: 0; font-size: 1.25rem; padding-right: 60px; }
     .card-content p { margin: 0.5rem 0; font-size: 0.9rem; color: #64748b; }
     .card-content .status-time { font-size: 0.8rem; color: #94a3b8; }
     .transfer-info { padding: 0 0 0.5rem; font-size: 0.85rem; font-style: italic; color: var(--transfer-color); text-align: center; }
@@ -99,17 +101,23 @@
     .btn-pausar:hover { background-color: var(--pause-color); color: white; }
     .btn-reabrir { background-color: var(--reopen-color); color: white; }
     .btn-copiar { background-color: var(--copy-color); color: white; }
+    .dashboard-panel.alignments h3 { color: var(--pause-color); border-bottom-color: var(--pause-color); }
+    .alignment-item { padding: 0.75rem 0.25rem; border-bottom: 1px solid var(--border-light); }
+    .alignment-item:last-child { border-bottom: none; }
+    .alignment-item .team-name { font-weight: 600; }
+    .alignment-item .message { display: block; font-size: 0.9rem; color: #64748b; margin-top: 0.25rem; }
+    .alignment-item .author-info { display: block; font-size: 0.8rem; text-align: right; color: #94a3b8; margin-top: 0.5rem; }
 
     .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); z-index: 1000; display: flex; justify-content: center; align-items: center; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
     .modal-overlay.visible { opacity: 1; pointer-events: auto; }
     .modal-content { background: var(--card-light); border-radius: 12px; max-width: 900px; width: 90%; max-height: 85vh; display: flex; flex-direction: column; box-shadow: 0 10px 25px rgba(0,0,0,0.2); transform: scale(0.95); transition: transform 0.3s ease; overflow: hidden; }
     html.dark .modal-content { background: var(--card-dark); }
     .modal-overlay.visible .modal-content { transform: scale(1); }
-    .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 1.5rem 2rem; border-bottom: 1px solid var(--border-light); flex-shrink: 0; }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 1.5rem 1rem; border-bottom: 1px solid var(--border-light); flex-shrink: 0; }
     html.dark .modal-header { border-bottom-color: var(--border-dark); }
     .modal-header h2 { margin: 0; font-size: 1.25rem; }
     .modal-close { font-size: 1.5rem; cursor: pointer; color: #aaa; border: none; background: none; }
-    .modal-body { padding: 2rem; padding-top: 0.5rem;overflow-y: auto; flex-grow: 1; }
+    .modal-body { padding: 1rem; overflow-y: auto; flex-grow: 1; }
     #settingsModal .modal-content { flex-direction: row; padding: 0; }
     .modal-sidebar { flex: 0 0 200px; background: #f8fafc; border-right: 1px solid var(--border-light); padding: 1rem; overflow-y: auto; }
     html.dark .modal-sidebar { background: #1a2233; border-right-color: var(--border-dark); }
@@ -118,25 +126,47 @@
     .modal-sidebar .nav-btn.active { background: var(--primary-color); color: white; }
     .modal-sidebar .nav-btn:not(.active):hover { background: #e2e8f0; }
     html.dark .modal-sidebar .nav-btn:not(.active):hover { background: #293548; }
-    .modal-main-content { flex-grow: 1; position: relative; display: flex; flex-direction: column; overflow-y: auto;}
+    .modal-main-content { flex-grow: 1; position: relative; display: flex; flex-direction: column; }
     .modal-main-content .modal-close { position: absolute; top: 1rem; right: 1.5rem; z-index: 10; }
-    .tab-content { display: none; flex-direction: column; height: 100%; padding: 1.5rem 2rem; box-sizing: border-box; }
+    .tab-content { display: none; flex-direction: column; height: 100%; }
     .tab-content.active { display: flex; }
-    .tab-content h2 { margin: 0 0 1rem 0; flex-shrink: 0; }
-    .tab-content p { flex-shrink: 0; margin-top: 0; margin-bottom: 1rem; }
-    .setting-section { border-top: 1px solid var(--border-light); padding-top: 1.5rem; }
-    .management-list { list-style: none; padding: 0; margin-top: 1rem; }
-    .management-list li { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; border-radius: 6px; }
-    .management-list li:nth-child(odd) { background: #f8fafc; }
-    html.dark .management-list li:nth-child(odd) { background: #1a2233; }
+    .tab-content h2 { padding: 1.5rem 2rem 0 2rem; margin: 0 0 1.5rem 0; flex-shrink: 0; }
+    
+    .setting-section, .form-container { padding: 0 2rem 1.5rem 2rem; }
+    .form-container { overflow-y: auto; flex-grow: 1; }
+    .setting-section.full-height { display: flex; flex-direction: column; flex-grow: 1; padding-bottom: 1.5rem;     overflow-y: auto;
+}
+    
+    .add-item-form { display: flex; gap: 0.75rem; align-items: center; margin-bottom: 1.5rem; }
+    .add-item-form input { flex-grow: 1; margin: 0; font-size: 1rem; padding: 0.7rem; border-radius: 6px; border: 1px solid var(--border-light); }
+    .add-item-form button { flex-shrink: 0; margin: 0; width: auto; }
+
+    .management-list-container { flex-grow: 1; overflow-y: auto; border: 1px solid var(--border-light); border-radius: 8px; }
+    html.dark .management-list-container { border-color: var(--border-dark); }
+    .management-list li { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 1rem; }
     .management-list .action-buttons button { background: none; border: none; font-size: 1.1rem; cursor: pointer; margin-left: 0.75rem; color: #94a3b8; transition: color 0.2s; }
     .management-list .action-buttons button:hover { color: var(--text-light); }
     html.dark .management-list .action-buttons button:hover { color: var(--text-dark); }
-    .management-list .action-buttons .btn-delete-card:hover { color: var(--delete-color); }
+    .management-list .action-buttons .btn-delete:hover { color: var(--delete-color); }
+    
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+    .form-group { display: flex; flex-direction: column; }
+    .form-group.full-width { grid-column: 1 / -1; }
+    .form-group label { margin-bottom: 0.5rem; font-weight: 500; font-size: 0.9rem; }
+    .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 0.7rem; box-sizing: border-box; border-radius: 6px; border: 1px solid var(--border-light); font-size: 1rem; font-family: 'Poppins', sans-serif; }
+    .form-group textarea { resize: vertical; min-height: 100px; }
+    .form-actions { margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--border-light); }
+    .teams-checkbox-container { border: 1px solid var(--border-light); border-radius: 6px; padding: 0.5rem 1rem; max-height: 150px; overflow-y: auto; }
+    .teams-list { display: flex; flex-direction: column; gap: 0.5rem; }
+    .team-checkbox-item { display: flex; align-items: center; gap: 0.75rem; padding: 0.25rem 0; }
+    .team-checkbox-item input { width: 18px; height: 18px; flex-shrink: 0; }
+    .team-checkbox-item label { margin-bottom: 0; }
+    .checkbox-actions { margin-bottom: 0.75rem; display: flex; gap: 1rem; }
+    .checkbox-actions button { background: none; border: none; color: var(--primary-color); cursor: pointer; font-weight: 500; padding: 0; }
+
     #tab-distribute .setting-section { display: flex; flex-direction: column; height: 100%; padding: 0; border: none; }
-    .distribution-controls { padding: 0 0 1.5rem 0; display: flex; align-items: center; gap: 1rem; flex-shrink: 0; }
-    .distribution-controls label { font-weight: 500; }
-    .distribution-matrix { flex-grow: 1; overflow-y: auto; border: 1px solid var(--border-light); border-radius: 8px; }
+    .distribution-controls { padding: 0 2rem 1.5rem 2rem; display: flex; align-items: center; gap: 1rem; flex-shrink: 0; }
+    .distribution-matrix { margin: 0 2rem; flex-grow: 1; overflow-y: auto; border: 1px solid var(--border-light); border-radius: 8px; }
     html.dark .distribution-matrix { border-color: var(--border-dark); }
     .distribution-matrix table { width: 100%; border-collapse: collapse; }
     .distribution-matrix th { background-color: #f8fafc; padding: 0.75rem; text-align: center; font-weight: 600; position: sticky; top: 0; z-index: 1; }
@@ -147,16 +177,14 @@
     html.dark .distribution-matrix tbody tr:hover { background-color: #1a2233; }
     .distribution-matrix td:first-child { text-align: left; font-weight: 500; padding-left: 1rem; }
     .distribution-matrix input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; }
-    #distribution-summary { margin-top: 1rem; font-weight: 500; padding: 0.5rem; flex-shrink: 0; min-height: 1.5em; }
-    #saveAssignmentsBtn { margin-top: auto; padding: 0.8rem; font-size: 1rem; }
+    #distribution-summary { margin-top: 1rem; font-weight: 500; padding: 0.5rem 2rem; flex-shrink: 0; min-height: 1.5em; }
+    #saveAssignmentsBtn { margin: 1rem 2rem auto 2rem; padding: 0.8rem; font-size: 1rem; }
     
     .history-filter { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; }
-    .history-filter .control-group { display: flex; align-items: center; gap: 0.5rem; }
     .history-filter button { margin-left: auto; }
     .history-item { padding-bottom: 1rem; margin-bottom: 1rem; border-bottom: 1px solid var(--border-light); }
     .history-item-header { font-weight: 600; font-size: 1.1rem; margin-bottom: 0.75rem; display: flex; justify-content: space-between; align-items: center; }
     .history-item-header .icon-btn { color: #94a3b8; font-size: 1.1rem; }
-    .history-item-header .icon-btn:hover { color: var(--delete-color); }
     .log-list { list-style: none; padding-left: 1rem; margin: 0; }
     .log-list li { padding: 0.4rem 0; font-size: 0.9rem; display: flex; justify-content: space-between; align-items: baseline; gap: 1.5rem; border-bottom: 1px dashed #eee; }
     .log-list li:last-child { border-bottom: none; }
@@ -190,6 +218,7 @@
         <button class="nav-btn active" data-tab="tab-distribute">Distribuição</button>
         <button class="nav-btn" data-tab="tab-monitors">Monitores</button>
         <button class="nav-btn" data-tab="tab-teams">Times</button>
+        <button class="nav-btn" data-tab="tab-alignments">Alinhamentos</button>
         <button class="nav-btn" data-tab="tab-general">Geral</button>
       </div>
       <div class="modal-main-content">
@@ -209,18 +238,57 @@
         <div id="tab-monitors" class="tab-content">
           <h2>Gerenciar Monitores</h2>
           <div class="setting-section">
-            <input type="text" id="newMonitorName" placeholder="Nome do novo monitor...">
-            <button id="addMonitorBtn" class="btn"><i class="fas fa-plus-circle"></i> Adicionar Monitor</button>
+            <div class="add-item-form">
+                <input type="text" id="newMonitorName" placeholder="Nome do novo monitor...">
+                <button id="addMonitorBtn" class="btn"><i class="fas fa-plus-circle"></i> Adicionar</button>
+            </div>
           </div>
-          <div class="setting-section"><h3>Monitores Atuais</h3><ul id="monitorsList" class="management-list"></ul></div>
+          <div class="setting-section full-height">
+            <h3>Monitores Atuais</h3>
+            <div class="management-list-container">
+                <ul id="monitorsList" class="management-list"></ul>
+            </div>
+          </div>
         </div>
         <div id="tab-teams" class="tab-content">
           <h2>Gerenciar Times</h2>
           <div class="setting-section">
-            <input type="text" id="newTeamName" placeholder="Nome do novo time...">
-            <button id="addTeamBtn" class="btn"><i class="fas fa-plus-circle"></i> Adicionar Time</button>
+            <div class="add-item-form">
+                <input type="text" id="newTeamName" placeholder="Nome do novo time...">
+                <button id="addTeamBtn" class="btn"><i class="fas fa-plus-circle"></i> Adicionar</button>
+            </div>
           </div>
-          <div class="setting-section"><h3>Times Atuais</h3><ul id="teamsList" class="management-list"></ul></div>
+          <div class="setting-section full-height">
+            <h3>Times Atuais</h3>
+            <div class="management-list-container">
+                <ul id="teamsList" class="management-list"></ul>
+            </div>
+          </div>
+        </div>
+        <div id="tab-alignments" class="tab-content">
+            <h2>Publicar Novo Alinhamento</h2>
+            <div class="form-container">
+                <p style="margin-top: 0; color: #64748b;">Crie um aviso para um ou mais times. Ele aparecerá no Dashboard e nos cards relevantes.</p>
+                <div class="form-group full-width">
+                    <label>Times Afetados</label>
+                    <div class="checkbox-actions">
+                        <button id="selectAllTeamsBtn">Marcar Todos</button>
+                        <button id="deselectAllTeamsBtn">Desmarcar Todos</button>
+                    </div>
+                    <div class="teams-checkbox-container">
+                        <div id="alignmentTeamsList" class="teams-list"></div>
+                    </div>
+                </div>
+                <div class="form-group full-width" style="margin-top: 1.5rem;"><label for="alignmentMessage">Mensagem</label><textarea id="alignmentMessage" rows="3" placeholder="Digite aqui..."></textarea></div>
+                <div class="form-grid" style="margin-top: 1.5rem;">
+                    <div class="form-group"><label for="alignmentStartDate">Início do Impacto</label><input type="date" id="alignmentStartDate"></div>
+                    <div class="form-group"><label for="alignmentEndDate">Fim do Impacto</label><input type="date" id="alignmentEndDate"></div>
+                </div>
+                <div class="form-group full-width" style="margin-top: 1.5rem;"><label for="alignmentAuthorSelect">Autor do Alinhamento</label><select id="alignmentAuthorSelect"></select></div>
+                <div class="form-actions">
+                    <button id="publishAlignmentBtn" class="btn btn-concluir" style="width: 100%;"><i class="fas fa-bullhorn"></i> Publicar Alinhamento</button>
+                </div>
+            </div>
         </div>
         <div id="tab-general" class="tab-content">
           <h2>Configurações Gerais</h2>
@@ -262,15 +330,29 @@
   <div id="transferModal" class="modal-overlay">
     <div class="modal-content" style="height: auto; max-width: 500px;">
         <div class="modal-header">
-            <h2 id="transferTitle">Transferir para:</h2>
+            <h2 id="transferTitle">Transferir Card</h2>
             <button class="modal-close" id="transferModalCloseBtn">×</button>
         </div>
         <div class="modal-body">
+            <p>Selecione um monitor para transferir a responsabilidade.</p>
             <div class="setting-section" style="border-top: none; padding-top: 0;">
-                <label for="transferMonitorSelect" style="display:block; margin-bottom: 0.5rem; font-weight: 500;"></label>
+                <label for="transferMonitorSelect" style="display:block; margin-bottom: 0.5rem; font-weight: 500;">Transferir para:</label>
                 <select id="transferMonitorSelect" style="width: 100%; padding: 0.7rem; font-size: 1rem;"></select>
             </div>
             <button id="confirmTransferBtn" class="btn btn-concluir" style="width: 100%; margin-top: 1.5rem;"><i class="fas fa-paper-plane"></i> Confirmar Transferência</button>
+        </div>
+    </div>
+  </div>
+
+  <div id="alignmentAlertModal" class="modal-overlay">
+    <div class="modal-content" style="height: auto; max-width: 500px;">
+        <div class="modal-header">
+            <h2 id="alignmentAlertTitle"><i class="fas fa-info-circle" style="color: var(--active-color);"></i> Alinhamento Importante</h2>
+            <button class="modal-close" id="alignmentAlertModalCloseBtn">×</button>
+        </div>
+        <div class="modal-body">
+            <p id="alignmentAlertMessage"></p>
+            <button id="confirmStartTaskBtn" class="btn btn-concluir" style="width: 100%; margin-top: 1rem;">Ciente, iniciar atividade</button>
         </div>
     </div>
   </div>
