@@ -120,7 +120,7 @@ function renderDashboardView(dateString) {
                 const totalCards = cardsToday.length;
                 const completedCards = cardsToday.filter(c => c.currentStatus && c.currentStatus.state === 'feito');
                 const activeCards = relevantCards.filter(c => c.currentStatus && c.currentStatus.state === 'ativo');
-                const pendingCards = cardsToday..filter(c => (!c.currentStatus || c.currentStatus.state === 'pendente') && !c.transferInfo);
+                const pendingCards = cardsToday.filter(c => (!c.currentStatus || c.currentStatus.state === 'pendente') && !c.transferInfo);
                 const percentage = totalCards > 0 ? Math.round((completedCards.length / totalCards) * 100) : 0;
                 
                 // LÓGICA DE AGRUPAMENTO DE ALINHAMENTOS (Mantida)
