@@ -86,38 +86,50 @@ async function fetchActiveAlignments(dateString) {
     }
 }
 
- function renderDashboardView(dateString) {
+function renderDashboardView(dateString) {
     fetchActiveAlignments(dateString).then(() => {
         const startOfDay = new Date(dateString + 'T00:00:00');
         const endOfDay = new Date(dateString + 'T23:59:59');
         boardContainer.innerHTML = '<p class="placeholder-text">Carregando painel do dia...</p>';
         boardContainer.className = '';
 
-        unsubscribeFromData = db.collection('cards').where('data', '>=', startOfDay).where('data', '<=', endOfDay)
+        // MUDANÇA 1: A consulta agora busca todos os cards até a data selecionada para encontrar os ativos atrasados.
+        unsubscribeFromData = db.collection('cards').where('data', '<=', endOfDay)
             .onSnapshot(snapshot => {
                 const allCards = snapshot.docs.map(doc => doc.data());
-                if (snapshot.empty && activeAlignments.length === 0) {
+                
+                // Filtra os cards para o dia atual E os atrasados não concluídos
+                const relevantCards = allCards.filter(card => {
+                    const cardDate = card.data.toDate();
+                    const status = card.currentStatus ? card.currentStatus.state : 'pendente';
+                    const isToday = cardDate >= startOfDay && cardDate <= endOfDay;
+                    return isToday || status !== 'feito';
+                });
+
+                if (relevantCards.length === 0 && activeAlignments.length === 0) {
                     boardContainer.innerHTML = '<p class="placeholder-text">Nenhum card ou alinhamento para este dia.</p>';
                     return;
                 }
-                const totalCards = allCards.length;
-                const completedCards = allCards.filter(c => c.currentStatus && c.currentStatus.state === 'feito');
-                const activeCards = allCards.filter(c => c.currentStatus && c.currentStatus.state === 'ativo');
-                const pendingCards = allCards.filter(c => !c.currentStatus || c.currentStatus.state === 'pendente');
+                
+                // Filtra para ter apenas os cards do dia para o cálculo da porcentagem
+                const cardsToday = relevantCards.filter(card => {
+                    const cardDate = card.data.toDate();
+                    return cardDate >= startOfDay && cardDate <= endOfDay;
+                });
+
+                const totalCards = cardsToday.length;
+                const completedCards = cardsToday.filter(c => c.currentStatus && c.currentStatus.state === 'feito');
+                const activeCards = relevantCards.filter(c => c.currentStatus && c.currentStatus.state === 'ativo');
+                const pendingCards = relevantCards.filter(c => (!c.currentStatus || c.currentStatus.state === 'pendente') && !c.transferInfo);
                 const percentage = totalCards > 0 ? Math.round((completedCards.length / totalCards) * 100) : 0;
                 
-                // --- INÍCIO DA NOVA LÓGICA DE AGRUPAMENTO ---
+                // LÓGICA DE AGRUPAMENTO DE ALINHAMENTOS (Mantida)
                 const groupedAlignments = {};
                 if (activeAlignments.length > 0) {
                     activeAlignments.forEach(a => {
-                        // Usa a mensagem + autor como chave única para o agrupamento
                         const groupKey = a.message + a.author;
                         if (!groupedAlignments[groupKey]) {
-                            groupedAlignments[groupKey] = {
-                                message: a.message,
-                                author: a.author,
-                                teams: [] // Inicia uma lista de times
-                            };
+                            groupedAlignments[groupKey] = { message: a.message, author: a.author, teams: [] };
                         }
                         groupedAlignments[groupKey].teams.push(a.teamName);
                     });
@@ -135,17 +147,25 @@ async function fetchActiveAlignments(dateString) {
                                 </li>`).join('')}
                         </ul>
                     </div>` : '';
-                // --- FIM DA NOVA LÓGICA DE AGRUPAMENTO ---
 
+                // MUDANÇA 2: Lógica para identificar ativos atrasados
+                const activeCardsHTML = activeCards.length > 0 ? activeCards.map(c => {
+                    const cardDate = c.data.toDate();
+                    const isOverdue = cardDate < startOfDay;
+                    const overdueBadge = isOverdue ? ' <span class="status-badge overdue">Atrasado</span>' : '';
+                    return `<li><span class="monitor-name">${c.monitor}</span> em <span class="team-name">${c.time}</span>${overdueBadge}</li>`;
+                }).join('') : '<li>Ninguém ativo no momento.</li>';
+                
+                // MUDANÇA 3: Inserção do activeCardsHTML na renderização final
                 const dashboardHTML = `
                     <div class="progress-container">
                         <div class="progress-circle" style="--progress: ${percentage}%"><div class="progress-inner"><div><div class="progress-percentage">${percentage}%</div><div class="progress-label">Concluído</div></div></div></div>
                     </div>
                     <div class="dashboard-grid">
                         ${alignmentsHTML}
-                        <div class="dashboard-panel"><h3>Ativos no Momento</h3><ul>${ activeCards.length > 0 ? activeCards.map(c => `<li><span class="monitor-name">${c.monitor}</span> em <span class="team-name">${c.time}</span></li>`).join('') : '<li>Ninguém ativo no momento.</li>' }</ul></div>
+                        <div class="dashboard-panel"><h3>Ativos no Momento</h3><ul>${activeCardsHTML}</ul></div>
                         <div class="dashboard-panel"><h3>Pendentes</h3><ul>${ pendingCards.length > 0 ? pendingCards.map(c => `<li><span class="team-name">${c.time}</span> (com <span class="monitor-name">${c.monitor}</span>)</li>`).join('') : '<li>Nenhum card pendente.</li>' }</ul></div>
-                        <div class="dashboard-panel"><h3>Concluídos Hoje</h3><ul>${ completedCards.length > 0 ? completedCards.map(c => `<li><span class="team-name">${c.time}</span> (por <span class="monitor-name">${c.monitor}</span>)</li>`).join('') : '<li>Nenhum card concluído ainda.</li>' }</ul></div>
+                        <div class="dashboard-panel"><h3>Concluídos</h3><ul>${ completedCards.length > 0 ? completedCards.map(c => `<li><span class="team-name">${c.time}</span> (por <span class="monitor-name">${c.monitor}</span>)</li>`).join('') : '<li>Nenhum card concluído ainda.</li>' }</ul></div>
                     </div>`;
                 boardContainer.innerHTML = dashboardHTML;
             }, error => {
@@ -155,58 +175,77 @@ async function fetchActiveAlignments(dateString) {
     });
 }
 
-    function renderKanbanView(monitor, dateString) {
-        fetchActiveAlignments(dateString).then(() => {
-            const startOfDay = new Date(dateString + 'T00:00:00');
-            const endOfDay = new Date(dateString + 'T23:59:59');
-            boardContainer.innerHTML = '<p class="placeholder-text">Carregando...</p>';
-            boardContainer.className = 'kanban-grid';
-            unsubscribeFromData = db.collection("cards")
-                .where("data", ">=", startOfDay)
-                .where("data", "<=", endOfDay)
-                .onSnapshot(snapshot => {
-                    let allCards = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    let cards = allCards.filter(card => 
-                        (card.monitor === monitor && !card.transferInfo) || 
-                        (card.transferInfo && card.transferInfo.toMonitor === monitor)
-                    );
-                    cards.sort((a, b) => {
-                        const statusA = a.currentStatus ? a.currentStatus.state : 'pendente';
-                        const statusB = b.currentStatus ? b.currentStatus.state : 'pendente';
-                        const orderA = a.transferInfo ? 0 : 1;
-                        const orderB = b.transferInfo ? 0 : 1;
-                        if (orderA !== orderB) return orderA - orderB;
-                        const statusOrder = { 'ativo': 1, 'pendente': 2, 'feito': 3 };
-                        return (statusOrder[statusA] || 99) - (statusOrder[statusB] || 99);
-                    });
-                    renderCards(cards);
-                }, error => {
-                    console.error("Erro ao carregar Kanban:", error);
-                    boardContainer.innerHTML = `<p class="placeholder-text error">Ocorreu um erro. Verifique a console (F12) para um link de criação de índice.</p>`;
-                });
-        });
-    }
-    
-    function renderCards(cards) {
-        boardContainer.innerHTML = '';
-        if (cards.length === 0) {
-            boardContainer.innerHTML = '<p class="placeholder-text">Você não tem cards para este dia.</p>';
-            return;
-        }
-        cards.forEach(card => {
-            const el = document.createElement('div');
-            el.className = 'card';
-            const statusState = card.currentStatus ? card.currentStatus.state : 'pendente';
-            const statusTime = card.currentStatus ? `(em ${formatarDataHoraBR(card.currentStatus.timestamp)})` : '';
-            const isDone = statusState === 'feito';
-            const isActive = statusState === 'ativo';
-            const hasBeenActive = card.foiAtivado === true;
-            const isPendingTransfer = card.transferInfo && card.transferInfo.status === 'pending';
-            const alignmentForCard = activeAlignments.find(a => a.teamName === card.time);
+  function renderKanbanView(monitor, dateString) {
+    fetchActiveAlignments(dateString).then(() => {
+        const startOfDay = new Date(dateString + 'T00:00:00');
+        const endOfDay = new Date(dateString + 'T23:59:59'); // Fim do dia selecionado
+        boardContainer.innerHTML = '<p class="placeholder-text">Carregando...</p>';
+        boardContainer.className = 'kanban-grid';
 
-            if (isDone) el.classList.add('done');
-            if (isActive) el.classList.add('active');
-            if (isPendingTransfer) el.classList.add('pending-transfer');
+        // MUDANÇA: A consulta agora busca tudo até o final do dia selecionado
+        unsubscribeFromData = db.collection("cards")
+            .where("monitor", "==", monitor)
+            .where("data", "<=", endOfDay)
+            .onSnapshot(snapshot => {
+                let allCards = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                
+                // MUDANÇA: Filtra os concluídos e etiqueta os atrasados
+                let unfinishedCards = allCards
+                    .filter(card => (card.currentStatus ? card.currentStatus.state : 'pendente') !== 'feito')
+                    .map(card => {
+                        return {
+                            ...card,
+                            isOverdue: card.data.toDate() < startOfDay
+                        };
+                    });
+
+                let cardsForView = unfinishedCards.filter(card => {
+                    return card.isOverdue || // Inclui todos os atrasados
+                           (card.transferInfo && card.transferInfo.toMonitor === monitor) || // Inclui transferências para mim
+                           (!card.transferInfo && card.monitor === monitor); // Inclui meus cards do dia
+                });
+
+                // MUDANÇA: Nova lógica de ordenação
+                cardsForView.sort((a, b) => {
+                    if (a.isOverdue !== b.isOverdue) return a.isOverdue ? -1 : 1; // Atrasados primeiro
+                    const orderA = a.transferInfo ? 0 : 1;
+                    const orderB = b.transferInfo ? 0 : 1;
+                    if (orderA !== orderB) return orderA - orderB; // Transferências depois
+                    const statusA = a.currentStatus ? a.currentStatus.state : 'pendente';
+                    const statusB = b.currentStatus ? b.currentStatus.state : 'pendente';
+                    const statusOrder = { 'ativo': 1, 'pendente': 2, 'feito': 3 };
+                    return (statusOrder[statusA] || 99) - (statusOrder[statusB] || 99);
+                });
+
+                renderCards(cardsForView);
+            }, error => {
+                console.error("Erro ao carregar Kanban:", error);
+                boardContainer.innerHTML = `<p class="placeholder-text error">Ocorreu um erro. Verifique a console (F12) para um link de criação de índice.</p>`;
+            });
+    });
+}
+    
+function renderCards(cards) {
+    boardContainer.innerHTML = '';
+    if (cards.length === 0) {
+        boardContainer.innerHTML = '<p class="placeholder-text">Você não tem cards para este dia.</p>';
+        return;
+    }
+    cards.forEach(card => {
+        const el = document.createElement('div');
+        el.className = 'card';
+        const statusState = card.currentStatus ? card.currentStatus.state : 'pendente';
+        const statusTime = card.currentStatus ? `(em ${formatarDataHoraBR(card.currentStatus.timestamp)})` : '';
+        const isDone = statusState === 'feito';
+        const isActive = statusState === 'ativo';
+        const hasBeenActive = card.foiAtivado === true;
+        const isPendingTransfer = card.transferInfo && card.transferInfo.status === 'pending';
+        const alignmentForCard = activeAlignments.find(a => a.teamName === card.time);
+
+        if (isDone) el.classList.add('done');
+        if (isActive) el.classList.add('active');
+        if (isPendingTransfer) el.classList.add('pending-transfer');
+        if (card.isOverdue) el.classList.add('overdue')
             
             let actionsHTML = '';
             if (isPendingTransfer) {
@@ -225,21 +264,26 @@ async function fetchActiveAlignments(dateString) {
                     actionsHTML += `<button class="btn btn-ativo" data-id="${card.id}"><i class="fas fa-play-circle"></i> Ativo</button>`;
                 }
             }
-            el.innerHTML = `
-                <div class="card-header-icons">
-                    ${alignmentForCard ? `<button class="card-info-btn" data-message="${alignmentForCard.message}" title="Ver Alinhamento"><i class="fas fa-info-circle"></i></button>` : ''}
-                    <button class="card-history-btn" data-card-id="${card.id}" title="Ver Histórico"><i class="fas fa-clock"></i></button>
-                </div>
-                <div class="card-content">
-                    <h3>${card.time}</h3>
-                    ${isPendingTransfer ? `<div class="transfer-info">Transferência de: <strong>${card.transferInfo.fromMonitor}</strong></div>` : ''}
-                    <p><strong>Status:</strong> ${statusState} <span class="status-time">${statusTime}</span></p>
-                </div>
-                <div class="actions">${actionsHTML}</div>`;
-            boardContainer.appendChild(el);
-        });
-        addCardButtonListeners();
-    }
+        el.innerHTML = `
+            <div class="card-header-icons">
+                ${alignmentForCard ? `<button class="card-info-btn" data-message="${alignmentForCard.message}" title="Ver Alinhamento"><i class="fas fa-info-circle"></i></button>` : ''}
+                <button class="card-history-btn" data-card-id="${card.id}" title="Ver Histórico"><i class="fas fa-clock"></i></button>
+            </div>
+            <div class="card-content">
+                <h3>
+                    ${card.time}
+                    ${card.isOverdue ? '<span class="status-badge overdue">Atrasado</span>' : ''}
+                </h3>
+                ${isPendingTransfer ? `<div class="transfer-info">Transferência de: <strong>${card.transferInfo.fromMonitor}</strong></div>` : ''}
+                <p><strong>Status:</strong> ${statusState} <span class="status-time">${statusTime}</span></p>
+                <!-- MUDANÇA: Mostra a data original do card se for atrasado -->
+                ${card.isOverdue ? `<p style="font-weight: 500;"><strong>Data Original:</strong> ${formatarDataBR(card.data)}</p>` : ''}
+            </div>
+            <div class="actions">${actionsHTML}</div>`;
+        boardContainer.appendChild(el);
+    });
+    addCardButtonListeners();
+}
 
     function addCardButtonListeners() {
         boardContainer.querySelectorAll('.btn-concluir').forEach(btn => btn.addEventListener('click', () => marcarFeito(btn.dataset.id)));
