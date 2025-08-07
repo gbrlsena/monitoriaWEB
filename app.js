@@ -380,21 +380,25 @@ function renderCards(cards) {
         } catch(error) { showAlert('Erro ao transferir.', 'error'); }
     }
     
-    async function acceptTransfer(id) {
-        const cardRef = db.collection('cards').doc(id);
-        const cardDoc = await cardRef.get();
-        if (!cardDoc.exists) return;
-        const toMonitor = cardDoc.data().transferInfo.toMonitor;
-        const now = new Date();
-        const logEntry = { timestamp: now, mensagem: `Transferência aceita por ${toMonitor}` };
-        await cardRef.update({
-            monitor: toMonitor,
-            currentStatus: { state: "pendente", timestamp: now },
-            foiAtivado: false,
-            transferInfo: firebase.firestore.FieldValue.delete(),
-            historico: firebase.firestore.FieldValue.arrayUnion(logEntry)
-        });
-    }
+async function acceptTransfer(id) {
+    const cardRef = db.collection('cards').doc(id);
+    const cardDoc = await cardRef.get();
+    if (!cardDoc.exists) return;
+    
+    const cardData = cardDoc.data();
+    const toMonitor = cardData.transferInfo.toMonitor;
+    const now = new Date();
+    const logEntry = { timestamp: now, mensagem: `Transferência aceita por ${toMonitor}` };
+
+    // LÓGICA CORRIGIDA:
+    // A função agora só muda o dono e remove a flag de transferência.
+    // O status atual, a data original e a flag 'foiAtivado' são PRESERVADOS.
+    await cardRef.update({
+        monitor: toMonitor, // 1. Muda o monitor responsável
+        transferInfo: firebase.firestore.FieldValue.delete(), // 2. Remove a informação de transferência
+        historico: firebase.firestore.FieldValue.arrayUnion(logEntry) // 3. Adiciona o log
+    });
+}
 
     async function declineTransfer(id) {
         const cardRef = db.collection('cards').doc(id);
