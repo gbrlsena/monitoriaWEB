@@ -175,42 +175,47 @@ function renderDashboardView(dateString) {
     });
 }
 
-  function renderKanbanView(monitor, dateString) {
+function renderKanbanView(monitor, dateString) {
     fetchActiveAlignments(dateString).then(() => {
         const startOfDay = new Date(dateString + 'T00:00:00');
-        const endOfDay = new Date(dateString + 'T23:59:59'); // Fim do dia selecionado
+        const endOfDay = new Date(dateString + 'T23:59:59');
         boardContainer.innerHTML = '<p class="placeholder-text">Carregando...</p>';
         boardContainer.className = 'kanban-grid';
 
-        // MUDANÇA: A consulta agora busca tudo até o final do dia selecionado
+        // A consulta continua a mesma: busca tudo até o final do dia selecionado
         unsubscribeFromData = db.collection("cards")
-            .where("monitor", "==", monitor)
             .where("data", "<=", endOfDay)
             .onSnapshot(snapshot => {
                 let allCards = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 
-                // MUDANÇA: Filtra os concluídos e etiqueta os atrasados
-                let unfinishedCards = allCards
-                    .filter(card => (card.currentStatus ? card.currentStatus.state : 'pendente') !== 'feito')
-                    .map(card => {
-                        return {
-                            ...card,
-                            isOverdue: card.data.toDate() < startOfDay
-                        };
+                // --- INÍCIO DA LÓGICA DE FILTRAGEM CORRIGIDA ---
+                let cardsForView = allCards
+                    .map(card => ({
+                        ...card,
+                        isOverdue: card.data.toDate() < startOfDay
+                    }))
+                    .filter(card => {
+                        const status = card.currentStatus ? card.currentStatus.state : 'pendente';
+                        const isToday = !card.isOverdue;
+
+                        // Condições para incluir um card na visão:
+                        // 1. É um card de hoje (qualquer status) E pertence a mim (e não é uma transferência para outro)
+                        const isMyCardForToday = isToday && card.monitor === monitor && !card.transferInfo;
+                        // 2. É uma transferência PENDENTE para mim
+                        const isTransferForMe = card.transferInfo && card.transferInfo.toMonitor === monitor;
+                        // 3. É um card ATRASADO, NÃO está feito E pertence a mim
+                        const isMyOverdueCard = card.isOverdue && status !== 'feito' && card.monitor === monitor && !card.transferInfo;
+
+                        return isMyCardForToday || isTransferForMe || isMyOverdueCard;
                     });
+                // --- FIM DA LÓGICA DE FILTRAGEM CORRIGIDA ---
 
-                let cardsForView = unfinishedCards.filter(card => {
-                    return card.isOverdue || // Inclui todos os atrasados
-                           (card.transferInfo && card.transferInfo.toMonitor === monitor) || // Inclui transferências para mim
-                           (!card.transferInfo && card.monitor === monitor); // Inclui meus cards do dia
-                });
-
-                // MUDANÇA: Nova lógica de ordenação
+                // A lógica de ordenação continua a mesma
                 cardsForView.sort((a, b) => {
-                    if (a.isOverdue !== b.isOverdue) return a.isOverdue ? -1 : 1; // Atrasados primeiro
+                    if (a.isOverdue !== b.isOverdue) return a.isOverdue ? -1 : 1;
                     const orderA = a.transferInfo ? 0 : 1;
                     const orderB = b.transferInfo ? 0 : 1;
-                    if (orderA !== orderB) return orderA - orderB; // Transferências depois
+                    if (orderA !== orderB) return orderA - orderB;
                     const statusA = a.currentStatus ? a.currentStatus.state : 'pendente';
                     const statusB = b.currentStatus ? b.currentStatus.state : 'pendente';
                     const statusOrder = { 'ativo': 1, 'pendente': 2, 'feito': 3 };
