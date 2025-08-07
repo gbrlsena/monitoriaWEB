@@ -175,43 +175,47 @@ function renderDashboardView(dateString) {
     });
 }
 
-function renderKanbanView(monitor, dateString) {
+ function renderKanbanView(monitor, dateString) {
     fetchActiveAlignments(dateString).then(() => {
-        const startOfDay = new Date(dateString + 'T00:00:00');
-        const endOfDay = new Date(dateString + 'T23:59:59');
+        const today = new Date(dateString + 'T00:00:00');
+        const endOfToday = new Date(dateString + 'T23:59:59');
         boardContainer.innerHTML = '<p class="placeholder-text">Carregando...</p>';
         boardContainer.className = 'kanban-grid';
 
-        // A consulta continua a mesma: busca tudo até o final do dia selecionado
         unsubscribeFromData = db.collection("cards")
-            .where("data", "<=", endOfDay)
+            .where("data", "<=", endOfToday)
             .onSnapshot(snapshot => {
                 let allCards = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 
-                // --- INÍCIO DA LÓGICA DE FILTRAGEM CORRIGIDA ---
-                let cardsForView = allCards
-                    .map(card => ({
-                        ...card,
-                        isOverdue: card.data.toDate() < startOfDay
-                    }))
+                // --- Lógica de Enriquecimento e Filtragem ---
+             let processedCards = allCards
+    .map(card => {
+        // Usa a data de criação se existir, senão usa a data do card para retrocompatibilidade
+        const originalDate = (card.createdAt ? card.createdAt.toDate() : card.data.toDate());
+        originalDate.setHours(0, 0, 0, 0);
+        
+        const isOverdue = originalDate < today;
+        let daysOverdue = 0;
+        if (isOverdue) {
+            const diffTime = Math.abs(today - originalDate);
+            daysOverdue = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        }
+        
+        return { ...card, isOverdue, daysOverdue };
+    })
                     .filter(card => {
                         const status = card.currentStatus ? card.currentStatus.state : 'pendente';
                         const isToday = !card.isOverdue;
 
-                        // Condições para incluir um card na visão:
-                        // 1. É um card de hoje (qualquer status) E pertence a mim (e não é uma transferência para outro)
                         const isMyCardForToday = isToday && card.monitor === monitor && !card.transferInfo;
-                        // 2. É uma transferência PENDENTE para mim
                         const isTransferForMe = card.transferInfo && card.transferInfo.toMonitor === monitor;
-                        // 3. É um card ATRASADO, NÃO está feito E pertence a mim
                         const isMyOverdueCard = card.isOverdue && status !== 'feito' && card.monitor === monitor && !card.transferInfo;
 
                         return isMyCardForToday || isTransferForMe || isMyOverdueCard;
                     });
-                // --- FIM DA LÓGICA DE FILTRAGEM CORRIGIDA ---
-
-                // A lógica de ordenação continua a mesma
-                cardsForView.sort((a, b) => {
+                
+                // CORREÇÃO: Usando a variável correta 'processedCards'
+                processedCards.sort((a, b) => {
                     if (a.isOverdue !== b.isOverdue) return a.isOverdue ? -1 : 1;
                     const orderA = a.transferInfo ? 0 : 1;
                     const orderB = b.transferInfo ? 0 : 1;
@@ -222,7 +226,9 @@ function renderKanbanView(monitor, dateString) {
                     return (statusOrder[statusA] || 99) - (statusOrder[statusB] || 99);
                 });
 
-                renderCards(cardsForView);
+                // Passando a variável correta para a função de renderização
+                renderCards(processedCards);
+
             }, error => {
                 console.error("Erro ao carregar Kanban:", error);
                 boardContainer.innerHTML = `<p class="placeholder-text error">Ocorreu um erro. Verifique a console (F12) para um link de criação de índice.</p>`;
@@ -249,26 +255,35 @@ function renderCards(cards) {
 
         if (isDone) el.classList.add('done');
         if (isActive) el.classList.add('active');
-        if (isPendingTransfer) el.classList.add('pending-transfer');
-        if (card.isOverdue) el.classList.add('overdue')
+        // Adiciona a classe .overdue se a propriedade isOverdue for verdadeira
+        if (card.isOverdue) el.classList.add('overdue'); 
             
-            let actionsHTML = '';
-            if (isPendingTransfer) {
-                actionsHTML = `<button class="btn btn-concluir" data-action="accept-transfer" data-id="${card.id}"><i class="fas fa-check"></i> Aceitar</button><button class="btn btn-delete" data-action="decline-transfer" data-id="${card.id}"><i class="fas fa-times"></i> Recusar</button>`;
-            } else if (isDone) {
-                actionsHTML = `<button class="btn btn-reabrir" data-id="${card.id}"><i class="fas fa-undo"></i> Reabrir</button><button class="btn btn-copiar" data-id="${card.id}" data-team="${card.time}"><i class="fas fa-copy"></i> Copiar</button>`;
+        let actionsHTML = '';
+        if (isPendingTransfer) {
+            actionsHTML = `<button class="btn btn-concluir" data-action="accept-transfer" data-id="${card.id}"><i class="fas fa-check"></i> Aceitar</button><button class="btn btn-delete" data-action="decline-transfer" data-id="${card.id}"><i class="fas fa-times"></i> Recusar</button>`;
+        } else if (isDone) {
+            actionsHTML = `<button class="btn btn-reabrir" data-id="${card.id}"><i class="fas fa-undo"></i> Reabrir</button><button class="btn btn-copiar" data-id="${card.id}" data-team="${card.time}"><i class="fas fa-copy"></i> Copiar</button>`;
+        } else {
+            const concluirDisabled = !hasBeenActive ? 'disabled' : '';
+            const concluirTitle = !hasBeenActive ? 'title="Marque como Ativo para poder concluir"' : '';
+            const ajudaDisabled = isActive ? 'disabled' : '';
+            const ajudaTitle = isActive ? 'title="Pause a atividade para pedir ajuda ou transferir"' : '';
+            actionsHTML = `<button class="btn btn-concluir" data-id="${card.id}" ${concluirDisabled} ${concluirTitle}><i class="fas fa-check-circle"></i> Concluir</button><button class="btn btn-ajuda" data-id="${card.id}" ${ajudaDisabled} ${ajudaTitle}><i class="fas fa-life-ring"></i> Ajuda</button>`;
+            if (isActive) {
+                actionsHTML += `<button class="btn btn-pausar" data-id="${card.id}"><i class="fas fa-pause-circle"></i> Pausar</button>`;
             } else {
-                const concluirDisabled = !hasBeenActive ? 'disabled' : '';
-                const concluirTitle = !hasBeenActive ? 'title="Marque como Ativo para poder concluir"' : '';
-                const ajudaDisabled = isActive ? 'disabled' : '';
-                const ajudaTitle = isActive ? 'title="Pause a atividade para pedir ajuda ou transferir"' : '';
-                actionsHTML = `<button class="btn btn-concluir" data-id="${card.id}" ${concluirDisabled} ${concluirTitle}><i class="fas fa-check-circle"></i> Concluir</button><button class="btn btn-ajuda" data-id="${card.id}" ${ajudaDisabled} ${ajudaTitle}><i class="fas fa-life-ring"></i> Ajuda</button>`;
-                if (isActive) {
-                    actionsHTML += `<button class="btn btn-pausar" data-id="${card.id}"><i class="fas fa-pause-circle"></i> Pausar</button>`;
-                } else {
-                    actionsHTML += `<button class="btn btn-ativo" data-id="${card.id}"><i class="fas fa-play-circle"></i> Ativo</button>`;
-                }
+                actionsHTML += `<button class="btn btn-ativo" data-id="${card.id}"><i class="fas fa-play-circle"></i> Ativo</button>`;
             }
+        }
+
+        // --- INÍCIO DA LÓGICA CORRIGIDA PARA O SELO DE ATRASO ---
+        let overdueBadgeHTML = '';
+        if (card.isOverdue && card.daysOverdue > 0) {
+            const dayText = card.daysOverdue > 1 ? 'dias' : 'dia';
+            overdueBadgeHTML = `<span class="status-badge overdue">Atrasado há ${card.daysOverdue} ${dayText}</span>`;
+        }
+        // --- FIM DA LÓGICA CORRIGIDA ---
+
         el.innerHTML = `
             <div class="card-header-icons">
                 ${alignmentForCard ? `<button class="card-info-btn" data-message="${alignmentForCard.message}" title="Ver Alinhamento"><i class="fas fa-info-circle"></i></button>` : ''}
@@ -277,11 +292,10 @@ function renderCards(cards) {
             <div class="card-content">
                 <h3>
                     ${card.time}
-                    ${card.isOverdue ? '<span class="status-badge overdue">Atrasado</span>' : ''}
+                    ${overdueBadgeHTML} 
                 </h3>
                 ${isPendingTransfer ? `<div class="transfer-info">Transferência de: <strong>${card.transferInfo.fromMonitor}</strong></div>` : ''}
                 <p><strong>Status:</strong> ${statusState} <span class="status-time">${statusTime}</span></p>
-                <!-- MUDANÇA: Mostra a data original do card se for atrasado -->
                 ${card.isOverdue ? `<p style="font-weight: 500;"><strong>Data Original:</strong> ${formatarDataBR(card.data)}</p>` : ''}
             </div>
             <div class="actions">${actionsHTML}</div>`;
@@ -325,7 +339,55 @@ function renderCards(cards) {
         }
     }
 
-    function marcarFeito(id) { addLogEntry(id, "feito", "Card concluído"); }
+    async function marcarFeito(clickedCardId) {
+    toggleCardButtons(clickedCardId, true);
+
+    try {
+        const clickedCardRef = db.collection('cards').doc(clickedCardId);
+        const clickedCardDoc = await clickedCardRef.get();
+
+        if (!clickedCardDoc.exists) {
+            throw new Error("Card não encontrado.");
+        }
+
+        const cardData = clickedCardDoc.data();
+        const teamName = cardData.time;
+        const monitorName = cardData.monitor;
+        const today = new Date();
+        today.setHours(23, 59, 59, 999); // Garante que pegamos tudo até o final do dia
+
+        // Busca todos os cards pendentes/ativos para este time/monitor até a data de hoje
+        const querySnapshot = await db.collection('cards')
+            .where('monitor', '==', monitorName)
+            .where('time', '==', teamName)
+            .where('data', '<=', today)
+            .get();
+            
+        const batch = db.batch();
+        const now = new Date();
+        const logEntry = { timestamp: now, mensagem: "Card concluído (resolvendo pendências)" };
+
+        querySnapshot.docs.forEach(doc => {
+            const status = doc.data().currentStatus ? doc.data().currentStatus.state : 'pendente';
+            // Atualiza apenas os que não estão 'feito'
+            if (status !== 'feito') {
+                const cardRefToUpdate = db.collection('cards').doc(doc.id);
+                batch.update(cardRefToUpdate, {
+                    currentStatus: { state: "feito", timestamp: now },
+                    historico: firebase.firestore.FieldValue.arrayUnion(logEntry)
+                });
+            }
+        });
+
+        await batch.commit();
+        showAlert('Todas as pendências para este time foram concluídas!', 'success');
+
+    } catch (error) {
+        console.error("Erro ao concluir cards em cascata:", error);
+        showAlert('Erro ao concluir os cards.', 'error');
+        toggleCardButtons(clickedCardId, false); // Reabilita em caso de erro
+    }
+}
     
     function marcarAtivo(id) {
         const cardRef = db.collection('cards').doc(id);
@@ -575,29 +637,60 @@ async function addItem(collectionName, inputElementId) {
         summaryContainer.innerHTML = summary;
     }
 
-    async function saveAssignments() {
-        const distDate = document.getElementById('distDate').value;
-        if (!distDate) return showAlert('Selecione uma data.', 'error');
-        const checkedBoxes = document.querySelectorAll('#distributionMatrixContainer input:checked');
-        if (checkedBoxes.length === 0) return showAlert('Nenhuma atribuição selecionada.', 'error');
-        const batch = db.batch();
-        const now = new Date();
-        checkedBoxes.forEach(box => {
+async function saveAssignments() {
+    const distDateInput = document.getElementById('distDate');
+    const date = distDateInput.value;
+    if (!date) return showAlert('Selecione uma data.', 'error');
+
+    const checkedBoxes = document.querySelectorAll('#distributionMatrixContainer input:checked');
+    if (checkedBoxes.length === 0) return showAlert('Nenhuma atribuição selecionada.', 'error');
+
+    const newAssignmentDate = new Date(date + 'T12:00:00');
+    const batch = db.batch();
+    const now = new Date();
+
+    const promises = Array.from(checkedBoxes).map(async (box) => {
+        const monitorName = box.dataset.monitor;
+        const teamName = box.dataset.team;
+
+        // Consulta para verificar se já existe um card "vivo"
+        const existingCardQuery = await db.collection('cards')
+            .where('monitor', '==', monitorName)
+            .where('time', '==', teamName)
+            .where('currentStatus.state', '!=', 'feito')
+            .limit(1)
+            .get();
+
+        if (existingCardQuery.empty) {
+            // Se NÃO existe card vivo, CRIA um novo.
             const newCardRef = db.collection('cards').doc();
             batch.set(newCardRef, {
-                monitor: box.dataset.monitor, time: box.dataset.team,
-                data: firebase.firestore.Timestamp.fromDate(new Date(distDate + 'T12:00:00')),
+                monitor: monitorName,
+                time: teamName,
+                data: firebase.firestore.Timestamp.fromDate(newAssignmentDate),
+                createdAt: now, 
                 currentStatus: { state: "pendente", timestamp: now },
-                precisaAjuda: false, foiAtivado: false,
+                precisaAjuda: false,
+                foiAtivado: false,
                 historico: [{ timestamp: now, mensagem: "Card criado" }]
             });
-        });
-        try {
-            await batch.commit();
-            showAlert('Distribuição salva!', 'success');
-            settingsModal.classList.remove('visible');
-        } catch (error) { console.error("Erro ao salvar:", error); showAlert('Erro ao salvar a distribuição.', 'error'); }
+        }
+        // Se já existe um card vivo, NÃO FAZEMOS NADA. Ele simplesmente continuará
+        // aparecendo como atrasado na visão do monitor, o que é o comportamento desejado.
+    });
+
+    try {
+        await Promise.all(promises);
+        await batch.commit();
+        
+        showAlert('Distribuição salva! Cards novos foram criados, os pendentes foram mantidos.', 'success');
+        document.getElementById('settingsModal').classList.remove('visible');
+
+    } catch (error) {
+        console.error("Erro ao salvar distribuição:", error);
+        showAlert('Erro ao salvar a distribuição.', 'error');
     }
+}
     
 async function publishAlignment() {
     // CORREÇÃO: Seletores movidos para dentro da função
