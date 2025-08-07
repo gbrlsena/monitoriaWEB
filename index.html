@@ -195,6 +195,27 @@
     .custom-alert.show { opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: auto; }
     .custom-alert.success { background-color: var(--done-color); }
     .custom-alert.error { background-color: var(--delete-color); }
+    .card.overdue {
+    border-top-color: var(--delete-color); /* Usa a cor vermelha de exclusão para urgência */
+    background-color: #fff1f2; /* Um fundo rosado muito sutil */
+}
+html.dark .card.overdue {
+    background-color: #3f2226;
+}
+
+.status-badge {
+    display: inline-block;
+    padding: 0.2rem 0.6rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border-radius: 999px; /* Formato de pílula */
+    margin-left: 0.5rem;
+}
+
+.status-badge.overdue {
+    background-color: var(--delete-color);
+    color: white;
+}
   </style>
 </head>
 <body>
@@ -352,7 +373,7 @@
         </div>
         <div class="modal-body">
             <p id="alignmentAlertMessage"></p>
-            <button id="confirmStartTaskBtn" class="btn btn-concluir" style="width: 100%; margin-top: 1rem;">Ciente, iniciar atividade</button>
+            <button id="confirmStartTaskBtn" class="btn btn-concluir" style="width: 100%; margin-top: 1rem;">Certo!</button>
         </div>
     </div>
   </div>
